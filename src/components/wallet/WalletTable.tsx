@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Copy } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
 	Table,
@@ -61,24 +62,52 @@ export function WalletTable({ wallets }: WalletTableProps) {
 					{wallets.map((wallet) => (
 						<TableRow key={wallet.id}>
 							<TableCell>
-								<WalletAddressCell address={wallet.address} />
+								<Link
+									href={`/demo/dashboard/wallets/${wallet.id}`}
+									className="block"
+								>
+									<WalletAddressCell address={wallet.address} />
+								</Link>
 							</TableCell>
 							<TableCell>
-								<NetworkBadge network={wallet.network} />
+								<Link
+									href={`/demo/dashboard/wallets/${wallet.id}`}
+									className="block"
+								>
+									<NetworkBadge network={wallet.network} />
+								</Link>
 							</TableCell>
 							<TableCell>
-								<StatusIndicator status={wallet.status} />
+								<Link
+									href={`/demo/dashboard/wallets/${wallet.id}`}
+									className="block"
+								>
+									<StatusIndicator status={wallet.status} />
+								</Link>
 							</TableCell>
 							<TableCell className="hidden sm:table-cell">
-								<span className="text-zinc-700 dark:text-zinc-300">
+								<Link
+									href={`/demo/dashboard/wallets/${wallet.id}`}
+									className="block text-zinc-700 dark:text-zinc-300"
+								>
 									{wallet.balance ?? "—"}
-								</span>
+								</Link>
 							</TableCell>
 							<TableCell className="hidden text-zinc-500 md:table-cell dark:text-zinc-400">
-								{formatDate(wallet.createdAt)}
+								<Link
+									href={`/demo/dashboard/wallets/${wallet.id}`}
+									className="block"
+								>
+									{formatDate(wallet.createdAt)}
+								</Link>
 							</TableCell>
 							<TableCell className="hidden text-zinc-500 lg:table-cell dark:text-zinc-400">
-								{formatDate(wallet.lastActivity)}
+								<Link
+									href={`/demo/dashboard/wallets/${wallet.id}`}
+									className="block"
+								>
+									{formatDate(wallet.lastActivity)}
+								</Link>
 							</TableCell>
 						</TableRow>
 					))}
