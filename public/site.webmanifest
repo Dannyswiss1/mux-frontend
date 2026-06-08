@@ -1,0 +1,21 @@
+{
+	"name": "Mux Protocol",
+	"short_name": "Mux",
+	"description": "Mux Protocol — a modular, non-custodial DeFi platform for cross-chain liquidity, leveraged trading, and yield optimization.",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#1a1a2e",
+	"theme_color": "#4f46e5",
+	"icons": [
+		{
+			"src": "/favicon.ico",
+			"sizes": "48x48 32x32 16x16",
+			"type": "image/x-icon"
+		},
+		{
+			"src": "/apple-touch-icon.png",
+			"sizes": "180x180",
+			"type": "image/png"
+		}
+	]
+}

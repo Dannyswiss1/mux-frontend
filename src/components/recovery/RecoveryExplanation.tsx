@@ -1,4 +1,5 @@
 import { RecoveryStatus } from "./RecoveryStatus";
+import { RecoveryDocsLink } from "./RecoveryDocsLink";
 
 export function RecoveryExplanation() {
 	return (
@@ -39,17 +40,21 @@ export function RecoveryExplanation() {
 			{/* Recovery Explanation Section */}
 			<section className="rounded-xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
 				<div className="space-y-6">
-					<div>
-						<h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-2">
-							What is Invisible Wallet Recovery?
-						</h2>
-						<p className="text-base text-zinc-600 dark:text-zinc-400 leading-relaxed">
-							Invisible Wallet Recovery is an automatic system that ensures your
-							wallet remains accessible even if you lose access to your device or
-							account. Unlike traditional wallets that require seed phrases or
-							private keys, Mux&apos;s invisible recovery system works seamlessly in the
-							background without requiring any action from you.
-						</p>
+					<div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+						<div>
+							<h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-2">
+								What is Invisible Wallet Recovery?
+							</h2>
+							<p className="text-base text-zinc-600 dark:text-zinc-400 leading-relaxed">
+								Invisible Wallet Recovery is an automatic system that ensures your
+								wallet remains accessible even if you lose access to your device
+								or account. Unlike traditional wallets that require seed phrases
+								or private keys, Mux&apos;s invisible recovery system works
+								seamlessly in the background without requiring any action from
+								you.
+							</p>
+						</div>
+						<RecoveryDocsLink />
 					</div>
 
 					<div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
@@ -68,8 +73,8 @@ export function RecoveryExplanation() {
 										Automatic Detection
 									</h4>
 									<p className="text-sm text-zinc-600 dark:text-zinc-400">
-										The system continuously monitors your wallet&apos;s health and
-										automatically detects when recovery is needed.
+										The system continuously monitors your wallet&apos;s health
+										and automatically detects when recovery is needed.
 									</p>
 								</div>
 							</div>
@@ -133,8 +138,8 @@ export function RecoveryExplanation() {
 									<strong className="text-zinc-900 dark:text-zinc-50">
 										Account access issues:
 									</strong>{" "}
-									When authentication problems are detected, the system initiates
-									recovery to maintain wallet accessibility.
+									When authentication problems are detected, the system
+									initiates recovery to maintain wallet accessibility.
 								</span>
 							</li>
 							<li className="flex items-start gap-2">
@@ -186,9 +191,9 @@ export function RecoveryExplanation() {
 					</h3>
 					<div className="space-y-2 text-sm text-amber-800 dark:text-amber-300">
 						<p>
-							<strong>Recovery is automatic:</strong> You don&apos;t need to take any
-							action. The recovery system works in the background and handles
-							everything for you.
+							<strong>Recovery is automatic:</strong> You don&apos;t need to
+							take any action. The recovery system works in the background and
+							handles everything for you.
 						</p>
 						<p>
 							<strong>Recovery timeframes:</strong> Most recovery operations
@@ -201,9 +206,9 @@ export function RecoveryExplanation() {
 							user error. Always verify transaction details before confirming.
 						</p>
 						<p>
-							<strong>Contact support:</strong> If you experience issues accessing
-							your wallet after 24 hours, or if you notice any suspicious activity,
-							please contact our support team immediately.
+							<strong>Contact support:</strong> If you experience issues
+							accessing your wallet after 24 hours, or if you notice any
+							suspicious activity, please contact our support team immediately.
 						</p>
 					</div>
 				</div>

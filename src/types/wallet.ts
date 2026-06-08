@@ -13,4 +13,5 @@ export type WalletStatus = Wallet["status"];
 
 export interface WalletTableProps {
 	wallets: Wallet[];
+	onAddWallet?: () => void;
 }

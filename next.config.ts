@@ -1,5 +1,9 @@
-import type { NextConfig } from "next";
+import { validateEnv } from "./src/lib/env";
 
+// Validate environment variables at build/startup time
+validateEnv();
+
+/** @type {import('next').NextConfig} */
 const nextConfig = {
 	experimental: {
 		turbo: {

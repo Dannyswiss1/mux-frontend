@@ -19,10 +19,28 @@ const networkLabels: Record<WalletNetwork, string> = {
 	mainnet: "Mainnet",
 };
 
+/**
+ * NetworkBadge component displays the network type (testnet/mainnet) with appropriate styling.
+ * Handles invalid network values gracefully by defaulting to mainnet.
+ *
+ * @param network - The wallet network type (testnet or mainnet)
+ * @param className - Optional additional CSS classes to merge with default styles
+ * @returns A styled badge component displaying the network type
+ */
 export function NetworkBadge({ network, className }: NetworkBadgeProps) {
+	// Validate network value and default to mainnet if invalid
+	const validNetwork: WalletNetwork = (
+		Object.keys(networkStyles) as WalletNetwork[]
+	).includes(network)
+		? network
+		: "mainnet";
+
+	const styles = networkStyles[validNetwork];
+	const label = networkLabels[validNetwork];
+
 	return (
-		<Badge variant="outline" className={cn(networkStyles[network], className)}>
-			{networkLabels[network]}
+		<Badge variant="outline" className={cn(styles, className)}>
+			{label}
 		</Badge>
 	);
 }

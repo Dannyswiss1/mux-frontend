@@ -3,28 +3,41 @@
 import {
 	ChartBarIcon,
 	CogIcon,
-	DocumentTextIcon,
 	HomeIcon,
-	ShoppingCartIcon,
+	KeyIcon,
+	ShieldCheckIcon,
 	UsersIcon,
+	WalletIcon,
 	XMarkIcon,
 } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 const navigation = [
-	{ name: "Dashboard", href: "/demo/dashboard", icon: HomeIcon },
-	{ name: "Analytics", href: "/demo/dashboard/analytics", icon: ChartBarIcon },
-	{ name: "Users", href: "/demo/dashboard/users", icon: UsersIcon },
-	{ name: "Orders", href: "/demo/dashboard/orders", icon: ShoppingCartIcon },
+	{ name: "Dashboard", href: "/dashboard", icon: HomeIcon },
+	{ name: "Analytics", href: "/dashboard/analytics", icon: ChartBarIcon },
+	{ name: "Wallets", href: "/dashboard/wallets", icon: WalletIcon },
+	{ name: "Users", href: "/dashboard/users", icon: UsersIcon },
+	{ name: "API Keys", href: "/dashboard/api-keys", icon: KeyIcon },
 	{
-		name: "Documents",
-		href: "/demo/dashboard/documents",
-		icon: DocumentTextIcon,
+		name: "Spending Limits",
+		href: "/dashboard/spending-limits",
+		icon: ShieldCheckIcon,
 	},
-	{ name: "Settings", href: "/demo/dashboard/settings", icon: CogIcon },
+	{ name: "Settings", href: "/dashboard/settings", icon: CogIcon },
 ];
+
+function isNavItemActive(pathname: string, itemHref: string): boolean {
+	// Exact match
+	if (pathname === itemHref) return true;
+	// For the Dashboard root item, only match exact
+	if (itemHref === "/demo/dashboard") return false;
+	// For other items, match if the pathname starts with the item's href
+	// (handles nested routes like /demo/dashboard/settings/profile)
+	return pathname.startsWith(itemHref + "/") || pathname.startsWith(itemHref);
+}
 
 interface SidebarProps {
 	isOpen: boolean;
@@ -33,6 +46,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
 	const pathname = usePathname();
+	const { user, isLoading } = useAuth();
 
 	return (
 		<>
@@ -68,7 +82,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 					{/* Navigation */}
 					<nav className="flex-1 space-y-1 px-4 py-6 overflow-y-auto">
 						{navigation.map((item) => {
-							const isActive = pathname === item.href;
+							const isActive = isNavItemActive(pathname, item.href);
 							return (
 								<Link
 									key={item.name}
@@ -102,15 +116,41 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
 					{/* User Profile */}
 					<div className="border-t p-4">
-						<div className="flex items-center space-x-3">
-							<div className="h-10 w-10 rounded-full bg-linear-to-br from-gray-300 to-gray-400" />
-							<div className="flex-1 min-w-0">
-								<p className="text-sm font-medium text-gray-900 truncate">
-									Tali Nanzing Moses
-								</p>
-								<p className="text-xs text-gray-500 truncate">User</p>
+						{isLoading ? (
+							<div className="flex items-center space-x-3">
+								<div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />
+								<div className="flex-1 space-y-2">
+									<div className="h-3 w-24 rounded bg-gray-200 animate-pulse" />
+									<div className="h-2 w-16 rounded bg-gray-200 animate-pulse" />
+								</div>
 							</div>
-						</div>
+						) : user ? (
+							<div className="flex items-center space-x-3">
+								<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-purple-600 text-sm font-semibold text-white">
+									{user.name
+										.split(" ")
+										.map((n) => n[0])
+										.slice(0, 2)
+										.join("")
+										.toUpperCase()}
+								</div>
+								<div className="flex-1 min-w-0">
+									<p className="text-sm font-medium text-gray-900 truncate">
+										{user.name}
+									</p>
+									<p className="text-xs text-gray-500 truncate">{user.role}</p>
+								</div>
+							</div>
+						) : (
+							<div className="flex items-center space-x-3">
+								<div className="h-10 w-10 rounded-full bg-linear-to-br from-gray-300 to-gray-400" />
+								<div className="flex-1 min-w-0">
+									<p className="text-sm font-medium text-gray-500 truncate">
+										Not signed in
+									</p>
+								</div>
+							</div>
+						)}
 					</div>
 				</div>
 			</div>

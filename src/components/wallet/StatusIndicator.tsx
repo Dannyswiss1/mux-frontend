@@ -31,13 +31,28 @@ const statusLabels: Record<WalletStatus, string> = {
 	inactive: "Inactive",
 };
 
+/**
+ * StatusIndicator component displays the wallet status with a visual dot indicator.
+ * Handles invalid status values gracefully by defaulting to inactive.
+ *
+ * @param status - The wallet status (active, pending, or inactive)
+ * @param className - Optional additional CSS classes to merge with default styles
+ * @returns A styled badge component with a dot indicator showing the status
+ */
 export function StatusIndicator({ status, className }: StatusIndicatorProps) {
-	const styles = statusStyles[status];
+	// Validate status value and default to inactive if invalid
+	const validStatus: WalletStatus = (
+		Object.keys(statusStyles) as WalletStatus[]
+	).includes(status)
+		? status
+		: "inactive";
+
+	const styles = statusStyles[validStatus];
 
 	return (
 		<Badge variant="outline" className={cn(styles.badge, className)}>
 			<span className={cn("h-2 w-2 rounded-full", styles.dot)} />
-			{statusLabels[status]}
+			{statusLabels[validStatus]}
 		</Badge>
 	);
 }

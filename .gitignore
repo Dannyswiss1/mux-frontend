@@ -24,6 +24,7 @@
 # misc
 .DS_Store
 *.pem
+.vscode/
 
 # debug
 npm-debug.log*
@@ -37,6 +38,13 @@ yarn-error.log*
 # vercel
 .vercel
 
+# personal task tracking
+vrickish.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# somzilla issues document
+src/somzilla.md
+
