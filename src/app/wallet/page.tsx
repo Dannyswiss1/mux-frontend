@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -16,7 +16,7 @@ import { formatDate } from "@/utils/dateFormatting";
 import { isWalletFunded } from "@/utils/walletUtils";
 import TransactionsTable from "@/components/TransactionsTable/TransactionsTable";
 
-export default function WalletPage() {
+function WalletPageContent() {
 	const { wallets, loading, error, refetch } = useWallets();
 	const pathname = usePathname();
 	const router = useRouter();
@@ -241,5 +241,13 @@ export default function WalletPage() {
 				onClose={closeReceive}
 			/>
 		</div>
+	);
+}
+
+export default function WalletPage() {
+	return (
+		<Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
+			<WalletPageContent />
+		</Suspense>
 	);
 }

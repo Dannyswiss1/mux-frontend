@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, Suspense, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 /**
@@ -68,7 +68,7 @@ function validate(fields: LoginFormState): FieldErrors {
 	return errors;
 }
 
-export default function LoginPage() {
+function LoginPageContent() {
 	const { isAuthenticated, isLoading, signIn } = useAuth();
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -321,5 +321,23 @@ export default function LoginPage() {
 				</p>
 			</div>
 		</div>
+	);
+}
+
+export default function LoginPage() {
+	return (
+		<Suspense
+			fallback={
+				<div
+					className="flex min-h-screen items-center justify-center bg-gray-50"
+					aria-busy="true"
+					aria-label="Loading"
+				>
+					<div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+				</div>
+			}
+		>
+			<LoginPageContent />
+		</Suspense>
 	);
 }

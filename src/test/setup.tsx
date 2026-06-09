@@ -1,4 +1,8 @@
 import "@testing-library/jest-dom";
+import { vi } from "vitest";
+
+// Legacy tests written for Jest can keep using `jest.*` APIs under Vitest.
+(globalThis as typeof globalThis & { jest: typeof vi }).jest = vi;
 
 // Mock next/navigation used by DashboardLayout / Sidebar
 vi.mock("next/navigation", () => ({

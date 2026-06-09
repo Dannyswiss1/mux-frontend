@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { mockTransactions } from "@/mock-data/transactions";
+import type { Transaction } from "@/types/transaction";
 
 // Simple token validation similar to other API routes
 const VALID_ACCESS_TOKEN = "mock-access-token";
@@ -9,7 +10,7 @@ const VALID_ACCESS_TOKEN = "mock-access-token";
  * This is a lightweight mapping; in a real implementation the backend would provide
  * appropriately shaped data.
  */
-function mapTransactionToActivity(tx) {
+function mapTransactionToActivity(tx: Transaction) {
 	// Determine activity type based on transaction status and direction (simplified)
 	const type =
 		tx.from === "GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPV6LY4UV2GL6VJGIQRXFDNMADI"

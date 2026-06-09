@@ -1,7 +1,7 @@
 import React from 'react';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility';
-import { cn } from '@/utils/cn';
+import { cn } from "@/lib/utils";
 
 export interface WalletBalanceProps {
   balance: number | string | null | undefined;

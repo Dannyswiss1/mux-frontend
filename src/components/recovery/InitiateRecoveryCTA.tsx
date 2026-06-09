@@ -160,7 +160,7 @@ export function InitiateRecoveryCTA({ recovery }: InitiateRecoveryCTAProps) {
 				</div>
 			)}
 
-			<Button onClick={initiateRecovery} disabled={state === "pending"}>
+			<Button onClick={initiateRecovery} disabled={state === "loading"}>
 				Initiate recovery
 			</Button>
 		</div>

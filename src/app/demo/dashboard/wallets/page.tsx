@@ -1,5 +1,6 @@
 "use client";
 
+import { useNetwork } from "@/context/NetworkContext";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { WalletTable } from "@/components/wallet/WalletTable";

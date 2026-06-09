@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { revokeKey } from "@/lib/api";
+import { revokeKey } from "@/lib/api/index";
 import type { ApiKey } from "@/mock-data/api-keys";
 
 export function useRevokeApiKey() {

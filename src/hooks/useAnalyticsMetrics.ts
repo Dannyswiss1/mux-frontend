@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import createApiClient from "@/lib/api";
+import { createApiClient } from "@/lib/api/index";
 import type { AssetData, ChartDataPoint, Metric } from "@/mock-data/analytics";
 import type { DateRangeParams } from "@/services/analyticsService";
 import { fetchAllAnalytics } from "@/services/analyticsService";

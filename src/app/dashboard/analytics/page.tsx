@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { AnalyticsChart } from "@/components/analytics/AnalyticsChart";
-import { AnalyticsHeader } from "@/components/analytics/AnalyticsHeader";
+import {
+	AnalyticsHeader,
+	type DateRange,
+} from "@/components/analytics/AnalyticsHeader";
 import { AnalyticsLoadingSkeleton } from "@/components/analytics/AnalyticsLoadingSkeleton";
 import { MetricsCards } from "@/components/analytics/MetricsCards";
 import { TopAssetsTable } from "@/components/analytics/TopAssetsTable";
@@ -9,6 +13,15 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useAnalytics } from "@/hooks/useAnalytics";
 
 export default function AnalyticsPage() {
+	const [range, setRange] = useState<DateRange>(() => {
+		const to = new Date();
+		const from = new Date();
+		from.setDate(from.getDate() - 7);
+		return {
+			from: from.toISOString().slice(0, 10),
+			to: to.toISOString().slice(0, 10),
+		};
+	});
 	const { data, isLoading, isError, error, refetch } = useAnalytics();
 
 	if (isLoading) {
@@ -27,7 +40,7 @@ export default function AnalyticsPage() {
 
 	return (
 		<div className="space-y-6">
-			<AnalyticsHeader />
+			<AnalyticsHeader range={range} onRangeChange={setRange} />
 
 			<MetricsCards metrics={data.metrics} />
 

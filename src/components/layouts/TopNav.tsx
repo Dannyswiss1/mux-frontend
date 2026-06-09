@@ -8,6 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { useNetwork } from "@/context/NetworkContext";
 
 interface TopNavProps {
@@ -24,6 +25,7 @@ export function TopNav({ onMenuClick }: TopNavProps) {
 	const [searchOpen, setSearchOpen] = useState(false);
 	const pathname = usePathname();
 	const { network, setNetwork } = useNetwork();
+	const { user, isLoading } = useAuth();
 
 	// Get current page title from pathname
 	const pageTitle = (() => {
@@ -181,7 +183,7 @@ export function TopNav({ onMenuClick }: TopNavProps) {
 									<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-purple-600 text-xs font-semibold text-white">
 										{user.name
 											.split(" ")
-											.map((n) => n[0])
+											.map((n: string) => n[0])
 											.slice(0, 2)
 											.join("")
 											.toUpperCase()}

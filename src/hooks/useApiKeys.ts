@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { fetchApiKeys } from "@/lib/api";
+import { fetchApiKeys } from "@/lib/api/index";
 import type { ApiKey } from "@/mock-data/api-keys";
 
 export function useApiKeys() {

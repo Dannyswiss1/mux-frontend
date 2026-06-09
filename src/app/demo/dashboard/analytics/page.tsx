@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import {
 	AnalyticsChart,
 	AnalyticsHeader,
+	type DateRange,
 	AnalyticsLoadingSkeleton,
 	MetricsCards,
 	TopAssetsTable,
@@ -11,6 +13,15 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useAnalytics } from "@/hooks/useAnalytics";
 
 export default function AnalyticsPage() {
+	const [range, setRange] = useState<DateRange>(() => {
+		const to = new Date();
+		const from = new Date();
+		from.setDate(from.getDate() - 7);
+		return {
+			from: from.toISOString().slice(0, 10),
+			to: to.toISOString().slice(0, 10),
+		};
+	});
 	const { data, isLoading, isError, error, refetch } = useAnalytics();
 
 	if (isLoading) {

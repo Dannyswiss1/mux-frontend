@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext } from "react";
 import { getApiKey } from "./config";
-import createApiClient, { ApiClient } from "./index";
+import ApiClient from "./client";
+import createApiClient from "./index";
 
 const ApiContext = createContext<ApiClient | null>(null);
 

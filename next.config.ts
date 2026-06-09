@@ -4,16 +4,6 @@ import { validateEnv } from "./src/lib/env";
 validateEnv();
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-	experimental: {
-		turbo: {
-			rules: {
-				"*.css": {
-					loaders: ["@tailwindcss/vite"],
-				},
-			},
-		},
-	},
-};
+const nextConfig = {};
 
 export default nextConfig;

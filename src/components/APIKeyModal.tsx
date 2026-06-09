@@ -5,9 +5,14 @@ import { useState } from "react";
 interface APIKeyModalProps {
 	isOpen: boolean;
 	onClose: () => void;
+	onKeyCreated?: (key: { name: string; value: string }) => void;
 }
 
-export default function APIKeyModal({ isOpen, onClose }: APIKeyModalProps) {
+export default function APIKeyModal({
+	isOpen,
+	onClose,
+	onKeyCreated,
+}: APIKeyModalProps) {
 	const [showWarning, setShowWarning] = useState(true);
 	const [apiKey, setApiKey] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
@@ -17,6 +22,7 @@ export default function APIKeyModal({ isOpen, onClose }: APIKeyModalProps) {
 		const newKey = `mux_${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
 		setApiKey(newKey);
 		setShowWarning(false);
+		onKeyCreated?.({ name: "New API Key", value: newKey });
 	};
 
 	const copyToClipboard = async () => {
