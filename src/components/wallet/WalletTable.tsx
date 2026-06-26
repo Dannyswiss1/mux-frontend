@@ -2,7 +2,8 @@
 
 import { AlertCircle, Check, Copy, Plus } from "lucide-react";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ExplorerLink } from "@/components/ui/ExplorerLink";
 import { TestnetHint } from "@/components/ui/TestnetHint";
@@ -67,10 +68,63 @@ function WalletAddressCell({
 }
 
 export function WalletTable({ wallets, onAddWallet }: WalletTableProps) {
+	const router = useRouter();
+	const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+	const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
+
 	const hasTestnetWallets = useMemo(
 		() => wallets.some((wallet) => wallet.network === "testnet"),
 		[wallets],
 	);
+
+	// Handle keyboard navigation
+	const handleKeyDown = useCallback(
+		(event: React.KeyboardEvent<HTMLTableRowElement>, index: number) => {
+			switch (event.key) {
+				case "ArrowDown":
+					event.preventDefault();
+					if (index < wallets.length - 1) {
+						setFocusedIndex(index + 1);
+						rowRefs.current[index + 1]?.focus();
+					}
+					break;
+				case "ArrowUp":
+					event.preventDefault();
+					if (index > 0) {
+						setFocusedIndex(index - 1);
+						rowRefs.current[index - 1]?.focus();
+					}
+					break;
+				case "Enter":
+				case " ":
+					event.preventDefault();
+					router.push(`/demo/dashboard/wallets/${wallets[index].id}`);
+					break;
+				case "Home":
+					event.preventDefault();
+					setFocusedIndex(0);
+					rowRefs.current[0]?.focus();
+					break;
+				case "End":
+					event.preventDefault();
+					const lastIndex = wallets.length - 1;
+					setFocusedIndex(lastIndex);
+					rowRefs.current[lastIndex]?.focus();
+					break;
+			}
+		},
+		[wallets, router],
+	);
+
+	// Handle row focus
+	const handleRowFocus = useCallback((index: number) => {
+		setFocusedIndex(index);
+	}, []);
+
+	// Handle row blur
+	const handleRowBlur = useCallback(() => {
+		setFocusedIndex(-1);
+	}, []);
 
 	return (
 		<div className="space-y-4">
