@@ -3,7 +3,7 @@
 import { Check, Copy, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton, WalletDetailSkeleton } from "@/components/ui/Skeleton";
 import { NetworkBadge } from "@/components/wallet/NetworkBadge";
 import { StatusIndicator } from "@/components/wallet/StatusIndicator";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
@@ -19,6 +19,10 @@ export function WalletDetail({ id }: WalletDetailProps) {
 	const { wallet, balance, loading, error, lastUpdated, refresh } =
 		useWalletBalance(id);
 	const { copy, copied } = useCopyToClipboard();
+
+	if (loading && !wallet) {
+		return <WalletDetailSkeleton />;
+	}
 
 	if (error && !wallet) {
 		return (
@@ -58,7 +62,7 @@ export function WalletDetail({ id }: WalletDetailProps) {
 				</div>
 
 				{loading && !balance ? (
-					<Skeleton className="h-12 w-48" />
+					<Skeleton className="h-12 w-48" aria-hidden="true" />
 				) : (
 					<p className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
 						{balance ?? "—"}
