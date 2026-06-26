@@ -1,15 +1,30 @@
 "use client";
 
-import { useNetwork } from "@/context/NetworkContext";
+import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { WalletTableSkeleton } from "@/components/ui/Skeleton";
 import { WalletTable } from "@/components/wallet/WalletTable";
+import { useNetwork } from "@/context/NetworkContext";
 import { dummyWallets } from "@/mock-data/wallets";
 import type { Wallet } from "@/types/wallet";
 
 export default function WalletsPage() {
 	const { network } = useNetwork();
-	const wallets = dummyWallets.filter((w) => w.network === network);
+	const [isLoading, setIsLoading] = useState(true);
+	const [wallets, setWallets] = useState<Wallet[]>([]);
+
+	useEffect(() => {
+		// Simulate loading state to demonstrate skeleton
+		setIsLoading(true);
+		const timer = setTimeout(() => {
+			const filteredWallets = dummyWallets.filter((w) => w.network === network);
+			setWallets(filteredWallets);
+			setIsLoading(false);
+		}, 800);
+
+		return () => clearTimeout(timer);
+	}, [network]);
 
 	return (
 		<div className="space-y-8">
@@ -18,7 +33,9 @@ export default function WalletsPage() {
 				description="Track and manage your Stellar wallets"
 			/>
 
-			{wallets.length > 0 ? (
+			{isLoading ? (
+				<WalletTableSkeleton />
+			) : wallets.length > 0 ? (
 				<WalletTable wallets={wallets} />
 			) : (
 				<EmptyState
