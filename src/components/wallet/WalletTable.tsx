@@ -77,7 +77,7 @@ export function WalletTable({ wallets, onAddWallet }: WalletTableProps) {
 			{hasTestnetWallets && <TestnetHint variant="default" />}
 
 			<div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-				<div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+				<div className="flex flex-col gap-3 border-b border-zinc-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-zinc-800">
 					<div>
 						<p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
 							{wallets.length} wallet{wallets.length !== 1 ? "s" : ""}
@@ -87,7 +87,7 @@ export function WalletTable({ wallets, onAddWallet }: WalletTableProps) {
 						<Button
 							size="sm"
 							onClick={onAddWallet}
-							className="rounded-full px-4"
+							className="w-full rounded-full px-4 sm:w-auto"
 						>
 							<Plus className="h-4 w-4" aria-hidden="true" />
 							Add Wallet
@@ -95,88 +95,143 @@ export function WalletTable({ wallets, onAddWallet }: WalletTableProps) {
 					)}
 				</div>
 
-				<Table>
-					<TableHeader>
-						<TableRow className="hover:bg-transparent dark:hover:bg-transparent">
-							<TableHead>Address</TableHead>
-							<TableHead>Network</TableHead>
-							<TableHead>Status</TableHead>
-							<TableHead className="hidden sm:table-cell">Balance</TableHead>
-							<TableHead className="hidden md:table-cell">Created</TableHead>
-							<TableHead className="hidden lg:table-cell">
-								Last Activity
-							</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{wallets.length === 0 ? (
-							<TableRow>
-								<TableCell
-									colSpan={6}
-									className="py-12 text-center text-zinc-500"
+				{wallets.length === 0 ? (
+					<div className="py-12 text-center text-zinc-500">
+						No wallets found for this network.
+					</div>
+				) : (
+					<>
+						{/* Desktop Table View */}
+						<div className="hidden lg:block">
+							<Table>
+								<TableHeader>
+									<TableRow className="hover:bg-transparent dark:hover:bg-transparent">
+										<TableHead>Address</TableHead>
+										<TableHead>Network</TableHead>
+										<TableHead>Status</TableHead>
+										<TableHead>Balance</TableHead>
+										<TableHead>Created</TableHead>
+										<TableHead>Last Activity</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{wallets.map((wallet) => (
+										<TableRow key={wallet.id}>
+											<TableCell>
+												<Link
+													href={`/demo/dashboard/wallets/${wallet.id}`}
+													className="block"
+												>
+													<WalletAddressCell
+														address={wallet.address}
+														network={wallet.network}
+													/>
+												</Link>
+											</TableCell>
+											<TableCell>
+												<Link
+													href={`/demo/dashboard/wallets/${wallet.id}`}
+													className="block"
+												>
+													<NetworkBadge network={wallet.network} />
+												</Link>
+											</TableCell>
+											<TableCell>
+												<Link
+													href={`/demo/dashboard/wallets/${wallet.id}`}
+													className="block"
+												>
+													<StatusIndicator status={wallet.status} />
+												</Link>
+											</TableCell>
+											<TableCell>
+												<Link
+													href={`/demo/dashboard/wallets/${wallet.id}`}
+													className="block text-zinc-700 dark:text-zinc-300"
+												>
+													{wallet.balance ?? "—"}
+												</Link>
+											</TableCell>
+											<TableCell className="text-zinc-500 dark:text-zinc-400">
+												<Link
+													href={`/demo/dashboard/wallets/${wallet.id}`}
+													className="block"
+												>
+													{formatDate(wallet.createdAt)}
+												</Link>
+											</TableCell>
+											<TableCell className="text-zinc-500 dark:text-zinc-400">
+												<Link
+													href={`/demo/dashboard/wallets/${wallet.id}`}
+													className="block"
+												>
+													{formatDate(wallet.lastActivity)}
+												</Link>
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+						</div>
+
+						{/* Mobile Card View */}
+						<div className="divide-y divide-zinc-100 lg:hidden dark:divide-zinc-800">
+							{wallets.map((wallet) => (
+								<Link
+									key={wallet.id}
+									href={`/demo/dashboard/wallets/${wallet.id}`}
+									className="block p-4 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
 								>
-									No wallets found for this network.
-								</TableCell>
-							</TableRow>
-						) : (
-							wallets.map((wallet) => (
-								<TableRow key={wallet.id}>
-									<TableCell>
-										<Link
-											href={`/demo/dashboard/wallets/${wallet.id}`}
-											className="block"
-										>
-											<WalletAddressCell
-												address={wallet.address}
-												network={wallet.network}
-											/>
-										</Link>
-									</TableCell>
-									<TableCell>
-										<Link
-											href={`/demo/dashboard/wallets/${wallet.id}`}
-											className="block"
-										>
-											<NetworkBadge network={wallet.network} />
-										</Link>
-									</TableCell>
-									<TableCell>
-										<Link
-											href={`/demo/dashboard/wallets/${wallet.id}`}
-											className="block"
-										>
-											<StatusIndicator status={wallet.status} />
-										</Link>
-									</TableCell>
-									<TableCell className="hidden sm:table-cell">
-										<Link
-											href={`/demo/dashboard/wallets/${wallet.id}`}
-											className="block text-zinc-700 dark:text-zinc-300"
-										>
-											{wallet.balance ?? "—"}
-										</Link>
-									</TableCell>
-									<TableCell className="hidden text-zinc-500 md:table-cell dark:text-zinc-400">
-										<Link
-											href={`/demo/dashboard/wallets/${wallet.id}`}
-											className="block"
-										>
-											{formatDate(wallet.createdAt)}
-										</Link>
-									</TableCell>
-									<TableCell className="hidden text-zinc-500 lg:table-cell dark:text-zinc-400">
-										<Link
-											href={`/demo/dashboard/wallets/${wallet.id}`}
-											className="block"
-										>
-											{formatDate(wallet.lastActivity)}
-										</Link>
-									</TableCell>
-								</TableRow>
-							))
-						)}
-					</TableBody>
-				</Table>
+									<div className="space-y-3">
+										{/* Top row: Address and Badges */}
+										<div className="flex items-start justify-between gap-2">
+											<div className="min-w-0 flex-1">
+												<WalletAddressCell
+													address={wallet.address}
+													network={wallet.network}
+												/>
+											</div>
+											<div className="flex flex-shrink-0 gap-2">
+												<NetworkBadge network={wallet.network} />
+												<StatusIndicator status={wallet.status} />
+											</div>
+										</div>
+
+										{/* Metadata grid */}
+										<div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+											<div>
+												<span className="text-zinc-500 dark:text-zinc-400">
+													Balance
+												</span>
+												<p className="font-medium text-zinc-900 dark:text-zinc-50">
+													{wallet.balance ?? "—"}
+												</p>
+											</div>
+											<div>
+												<span className="text-zinc-500 dark:text-zinc-400">
+													Created
+												</span>
+												<p className="font-medium text-zinc-900 dark:text-zinc-50">
+													{formatDate(wallet.createdAt)}
+												</p>
+											</div>
+											{wallet.lastActivity && (
+												<div className="col-span-2">
+													<span className="text-zinc-500 dark:text-zinc-400">
+														Last Activity
+													</span>
+													<p className="font-medium text-zinc-900 dark:text-zinc-50">
+														{formatDate(wallet.lastActivity)}
+													</p>
+												</div>
+											)}
+										</div>
+									</div>
+								</Link>
+							))}
+						</div>
+					</>
+				)}
 			</div>
 		</div>
 	);
