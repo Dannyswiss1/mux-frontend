@@ -11,6 +11,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { NetworkBadge } from "@/components/wallet/NetworkBadge";
 import ReceiveWalletModal from "@/components/wallet/ReceiveWalletModal";
+import { SendWalletModal } from "@/components/wallet/SendWalletModal";
 import { StatusIndicator } from "@/components/wallet/StatusIndicator";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useWallets } from "@/hooks/useWallets";
@@ -211,6 +212,7 @@ function WalletPageContent() {
 								<div className="flex flex-wrap gap-3">
 									<Button
 										disabled={!isWalletFunded(wallet)}
+										onClick={() => setIsSendOpen(true)}
 										title={
 											isWalletFunded(wallet)
 												? "Send funds from this wallet"
@@ -288,6 +290,11 @@ function WalletPageContent() {
 				isOpen={isReceiveOpen}
 				wallet={wallet}
 				onClose={closeReceive}
+			/>
+			<SendWalletModal
+				isOpen={isSendOpen}
+				wallet={wallet}
+				onClose={() => setIsSendOpen(false)}
 			/>
 		</div>
 	);
