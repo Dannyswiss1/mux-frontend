@@ -5,6 +5,7 @@ type SkeletonProps = HTMLAttributes<HTMLDivElement>;
 export function Skeleton({ className, ...props }: SkeletonProps) {
 	return (
 		<div
+			data-testid="skeleton"
 			className={`animate-pulse rounded-md bg-zinc-200 dark:bg-zinc-800 ${className}`}
 			{...props}
 		/>
@@ -14,13 +15,43 @@ export function Skeleton({ className, ...props }: SkeletonProps) {
 export function WalletTableSkeleton() {
 	return (
 		<div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+			{/* Table Header Skeleton */}
+			<div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+				<Skeleton className="h-5 w-24" />
+				<Skeleton className="h-9 w-28 rounded-full" />
+			</div>
+
+			{/* Table Content Skeleton */}
 			<div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+				{/* Table Column Headers */}
+				<div className="grid grid-cols-6 gap-4 px-6 py-3 bg-zinc-50 dark:bg-zinc-900/50">
+					<Skeleton className="h-4 w-16" />
+					<Skeleton className="h-4 w-16" />
+					<Skeleton className="h-4 w-14" />
+					<Skeleton className="hidden h-4 w-16 sm:block" />
+					<Skeleton className="hidden h-4 w-16 md:block" />
+					<Skeleton className="hidden h-4 w-24 lg:block" />
+				</div>
+
+				{/* Table Rows */}
 				{Array.from({ length: 5 }).map((_, i) => (
-					<div key={i} className="flex items-center gap-4 p-4">
-						<Skeleton className="h-4 w-48" />
-						<Skeleton className="h-4 w-20" />
-						<Skeleton className="h-4 w-16" />
-						<Skeleton className="ml-auto h-4 w-24" />
+					<div key={i} className="grid grid-cols-6 gap-4 px-6 py-4">
+						{/* Address column */}
+						<div className="flex items-center gap-2">
+							<Skeleton className="h-8 w-32 rounded" />
+							<Skeleton className="h-6 w-6 rounded" />
+							<Skeleton className="h-6 w-6 rounded" />
+						</div>
+						{/* Network column */}
+						<Skeleton className="h-6 w-20 rounded-full" />
+						{/* Status column */}
+						<Skeleton className="h-6 w-16 rounded-full" />
+						{/* Balance column */}
+						<Skeleton className="hidden h-4 w-24 sm:block" />
+						{/* Created column */}
+						<Skeleton className="hidden h-4 w-20 md:block" />
+						{/* Last Activity column */}
+						<Skeleton className="hidden h-4 w-20 lg:block" />
 					</div>
 				))}
 			</div>
