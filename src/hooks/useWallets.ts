@@ -28,13 +28,9 @@ export function useWallets(): UseWalletsResult {
 		setWallets([]);
 
 		const base = getApiBaseUrl();
-		if (!base) {
-			setError("API URL is not configured.");
-			setLoading(false);
-			return;
-		}
+		const url = base ? `${base}/wallets` : "/api/wallets";
 
-		fetch(`${base}/wallets`)
+		fetch(url)
 			.then((res) => {
 				if (!res.ok) throw new Error(`Request failed: ${res.status}`);
 				return res.json() as Promise<Wallet[]>;
