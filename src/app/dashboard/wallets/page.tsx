@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { AddWalletModal } from "@/components/wallet/AddWalletModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -8,7 +10,15 @@ import { WalletTable } from "@/components/wallet/WalletTable";
 import { useWallets } from "@/hooks/useWallets";
 
 export default function WalletsPage() {
-	const { wallets, loading, error, refetch } = useWallets();
+	const [wallets, setWallets] = useState<Wallet[]>(dummyWallets);
+	const [isAddOpen, setIsAddOpen] = useState(false);
+
+	const openAddWallet = () => setIsAddOpen(true);
+
+	const handleAdd = (wallet: Wallet) => {
+		setWallets((prev) => [wallet, ...prev]);
+		setIsAddOpen(false);
+	};
 
 	return (
 		<div className="space-y-8">
@@ -17,29 +27,24 @@ export default function WalletsPage() {
 				description="Track and manage your Stellar wallets"
 			/>
 
-			{loading ? (
-				<div className="space-y-3 rounded-xl border border-zinc-200 p-6 dark:border-zinc-800">
-					{Array.from({ length: 4 }).map((_, i) => (
-						<Skeleton key={i} className="h-12 w-full" />
-					))}
-				</div>
-			) : error ? (
-				<ErrorState
-					description={error}
-					retry={{ label: "Retry", onRetry: refetch }}
-				/>
-			) : wallets.length > 0 ? (
-				<WalletTable wallets={wallets} />
+			{wallets.length > 0 ? (
+				<WalletTable wallets={wallets} onAddWallet={openAddWallet} />
 			) : (
 				<EmptyState
 					title="No wallets found"
 					description="You haven't added any wallets to monitor yet. Add your first wallet to start tracking."
 					action={{
 						label: "Add Wallet",
-						onClick: () => {},
+						onClick: openAddWallet,
 					}}
 				/>
 			)}
+
+			<AddWalletModal
+				isOpen={isAddOpen}
+				onClose={() => setIsAddOpen(false)}
+				onAdd={handleAdd}
+			/>
 		</div>
 	);
 }

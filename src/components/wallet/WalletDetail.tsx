@@ -2,8 +2,9 @@
 
 import { Check, Copy, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton, WalletDetailSkeleton } from "@/components/ui/Skeleton";
 import { NetworkBadge } from "@/components/wallet/NetworkBadge";
 import { StatusIndicator } from "@/components/wallet/StatusIndicator";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
@@ -20,11 +21,44 @@ export function WalletDetail({ id }: WalletDetailProps) {
 		useWalletBalance(id);
 	const { copy, copied } = useCopyToClipboard();
 
+	const isNotFound =
+		!!error &&
+		(error.toLowerCase().includes("not found") || error === "not_found");
+
+	if (isNotFound) {
+		return (
+			<EmptyState
+				title="Wallet not found"
+				description="No wallet exists for this ID. It may have been removed or the link is invalid."
+			/>
+		);
+	}
+
 	if (error && !wallet) {
+		const isNotFound =
+			error.toLowerCase().includes("not found") || error === "not_found";
 		return (
 			<ErrorState
-				description={error}
-				retry={{ label: "Retry", onRetry: refresh }}
+				title={isNotFound ? "Wallet not found" : "Failed to load wallet"}
+				description={
+					isNotFound
+						? "This wallet doesn't exist or the ID is invalid."
+						: `${error}. Check your connection and try again.`
+				}
+				retry={
+					isNotFound
+						? undefined
+						: { label: "Try Again", onRetry: refresh }
+				}
+			/>
+		);
+	}
+
+	if (!loading && !wallet) {
+		return (
+			<EmptyState
+				title="No wallet data"
+				description="This wallet has no data to display yet."
 			/>
 		);
 	}
@@ -58,7 +92,7 @@ export function WalletDetail({ id }: WalletDetailProps) {
 				</div>
 
 				{loading && !balance ? (
-					<Skeleton className="h-12 w-48" />
+					<Skeleton className="h-12 w-48" aria-hidden="true" />
 				) : (
 					<p className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
 						{balance ?? "—"}
@@ -66,7 +100,12 @@ export function WalletDetail({ id }: WalletDetailProps) {
 				)}
 
 				{error && wallet && (
-					<p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+					<p
+						role="alert"
+						className="mt-2 text-sm text-red-600 dark:text-red-400"
+					>
+						Balance refresh failed: {error}
+					</p>
 				)}
 			</div>
 
