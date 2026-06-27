@@ -20,6 +20,7 @@ export default defineConfig({
 				"src/utils/**",
 				"src/hooks/**",
 				"src/mock-data/**",
+				"src/services/**",
 				"src/app/**/wallets/**",
 				"src/app/**/analytics/**",
 			],

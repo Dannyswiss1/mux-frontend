@@ -11,7 +11,7 @@ describe("TransactionsTable", () => {
 		expect(screen.getByText("Transactions")).toBeInTheDocument();
 		// Check that at least one mock transaction is rendered
 		// e.g. amount 250.00
-		expect(screen.getByText("250.00")).toBeInTheDocument();
+		expect(screen.getAllByText("250.00")[0]).toBeInTheDocument();
 	});
 
 	it("filters transactions by address prop", () => {
@@ -19,7 +19,7 @@ describe("TransactionsTable", () => {
 		render(<TransactionsTable address={targetAddress} />);
 		
 		// The transaction from/to targetAddress should be present
-		expect(screen.getByText("250.00")).toBeInTheDocument();
+		expect(screen.getAllByText("250.00")[0]).toBeInTheDocument();
 		
 		// Transaction not involving targetAddress should NOT be present (e.g. 50.50 amount)
 		expect(screen.queryByText("50.50")).not.toBeInTheDocument();
@@ -32,7 +32,7 @@ describe("TransactionsTable", () => {
 		const searchInput = screen.getByPlaceholderText("Hash, address, memo…");
 		await user.type(searchInput, "payment-ref");
 		
-		expect(screen.getByText("250.00")).toBeInTheDocument();
+		expect(screen.getAllByText("250.00")[0]).toBeInTheDocument();
 		// The 1000.00 tx doesn't have this memo
 		expect(screen.queryByText("1,000.00")).not.toBeInTheDocument();
 	});

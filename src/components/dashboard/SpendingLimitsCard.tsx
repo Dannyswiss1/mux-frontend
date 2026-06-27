@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Toast } from "@/components/ui/toast";
+import type { SpendingLimitsResponse } from "@/app/api/spending-limits/route";
 
 // Allow pressing Enter in an input to trigger save, Escape to blur.
 function useInputKeyNav(onSave: () => void) {
@@ -68,6 +69,7 @@ export function SpendingLimitsCard({
 
 	const toastTimeoutRef = useRef<number | null>(null);
 
+	// Fetch limits from API on mount
 	useEffect(() => {
 		try {
 			const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -79,15 +81,13 @@ export function SpendingLimitsCard({
 			if (typeof parsed?.transactionLimit === "number" && isFinite(parsed.transactionLimit)) {
 				setTransactionLimit(String(parsed.transactionLimit));
 			}
-		} catch {
-			// Ignore invalid stored data and continue with defaults.
 		}
 		return () => {
 			if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
 		};
 	}, []);
 
-	const usedAmount = 750;
+	const usedAmount = todayUsage;
 	const totalLimit = Number.parseInt(dailyLimit) || 1;
 	const usagePercentage = Math.min((usedAmount / totalLimit) * 100, 100);
 
@@ -266,9 +266,18 @@ export function SpendingLimitsCard({
 					</div>
 				</div>
 
-				<div className="flex justify-end bg-zinc-50 px-6 py-4 dark:bg-zinc-900/50">
-					<Button className="rounded-full px-6" onClick={handleSave}>
-						Save Settings
+				<div className="flex flex-col sm:flex-row items-end justify-between gap-3 bg-zinc-50 px-6 py-4 dark:bg-zinc-900/50">
+					{error && (
+						<p className="text-xs text-red-600 leading-relaxed">
+							{error}
+						</p>
+					)}
+					<Button
+						className="rounded-full px-6 shrink-0"
+						onClick={handleSave}
+						disabled={saveInProgress}
+					>
+						{saveInProgress ? "Saving…" : "Save Settings"}
 					</Button>
 				</div>
 			</div>
