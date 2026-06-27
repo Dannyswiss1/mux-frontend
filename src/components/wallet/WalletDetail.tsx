@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Copy, RefreshCw } from "lucide-react";
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -19,6 +20,8 @@ export function WalletDetail({ id }: WalletDetailProps) {
 	const { wallet, balance, loading, error, lastUpdated, refresh } =
 		useWalletBalance(id);
 	const { copy, copied } = useCopyToClipboard();
+	const balanceHeadingId = useId();
+	const infoHeadingId = useId();
 
 	if (error && !wallet) {
 		return (
@@ -32,9 +35,15 @@ export function WalletDetail({ id }: WalletDetailProps) {
 	return (
 		<div className="space-y-6">
 			{/* Balance card */}
-			<div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+			<section
+				aria-labelledby={balanceHeadingId}
+				className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
+			>
 				<div className="mb-4 flex items-center justify-between">
-					<h2 className="text-sm font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+					<h2
+						id={balanceHeadingId}
+						className="text-sm font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+					>
 						Live Balance
 					</h2>
 					<div className="flex items-center gap-2">
@@ -48,32 +57,49 @@ export function WalletDetail({ id }: WalletDetailProps) {
 							onClick={refresh}
 							disabled={loading}
 							aria-label="Refresh balance"
-							className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+							aria-busy={loading}
+							className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 dark:focus-visible:ring-blue-400"
 						>
 							<RefreshCw
 								className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+								aria-hidden="true"
 							/>
 						</button>
 					</div>
 				</div>
 
 				{loading && !balance ? (
-					<Skeleton className="h-12 w-48" />
+					<Skeleton className="h-12 w-48" aria-label="Loading balance" />
 				) : (
-					<p className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+					<p
+						aria-live="polite"
+						aria-atomic="true"
+						className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50"
+					>
 						{balance ?? "—"}
 					</p>
 				)}
 
 				{error && wallet && (
-					<p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+					<p
+						role="alert"
+						className="mt-2 text-sm text-red-600 dark:text-red-400"
+					>
+						{error}
+					</p>
 				)}
-			</div>
+			</section>
 
 			{/* Wallet metadata */}
 			{wallet ? (
-				<div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-					<h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+				<section
+					aria-labelledby={infoHeadingId}
+					className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
+				>
+					<h2
+						id={infoHeadingId}
+						className="mb-4 text-sm font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+					>
 						Wallet Info
 					</h2>
 					<dl className="space-y-4">
@@ -89,12 +115,15 @@ export function WalletDetail({ id }: WalletDetailProps) {
 									variant="ghost"
 									size="icon-sm"
 									onClick={() => copy(wallet.address)}
+									aria-label={
+										copied ? "Address copied" : "Copy wallet address"
+									}
 									title={copied ? "Copied!" : "Copy address"}
 								>
 									{copied ? (
-										<Check className="h-4 w-4 text-green-500" />
+										<Check className="h-4 w-4 text-green-500" aria-hidden="true" />
 									) : (
-										<Copy className="h-4 w-4" />
+										<Copy className="h-4 w-4" aria-hidden="true" />
 									)}
 								</Button>
 							</dd>
@@ -134,7 +163,7 @@ export function WalletDetail({ id }: WalletDetailProps) {
 							</div>
 						)}
 					</dl>
-				</div>
+				</section>
 			) : (
 				<div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
 					<Skeleton className="mb-4 h-4 w-24" />

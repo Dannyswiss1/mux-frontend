@@ -43,6 +43,13 @@ function WalletPageContent() {
 
 	return (
 		<div className="min-h-screen bg-neutral-50 text-neutral-900 font-sans p-6 md:p-12">
+			{/* Skip link for keyboard users */}
+			<a
+				href="#main-content"
+				className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-neutral-900 focus:shadow-lg focus:ring-2 focus:ring-blue-500"
+			>
+				Skip to main content
+			</a>
 			<div className="max-w-4xl mx-auto space-y-8">
 				<header className="flex items-center justify-between mb-8">
 					<div>
@@ -60,7 +67,7 @@ function WalletPageContent() {
 					<div className="flex gap-3">
 						<Link
 							href="/"
-							className="px-4 py-2 text-sm font-medium text-neutral-600 bg-white border border-neutral-200 rounded-lg shadow-xs hover:bg-neutral-50 transition-colors"
+							className="px-4 py-2 text-sm font-medium text-neutral-600 bg-white border border-neutral-200 rounded-lg shadow-xs hover:bg-neutral-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
 						>
 							Back to Dashboard
 						</Link>
@@ -93,7 +100,11 @@ function WalletPageContent() {
 				)}
 
 				{!loading && wallet && (
-					<section className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm space-y-6">
+					<section
+						id="main-content"
+						aria-label="Wallet information"
+						className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm space-y-6"
+					>
 						<dl className="grid gap-6 sm:grid-cols-2">
 							<div>
 								<dt className="text-sm font-medium text-neutral-500">
