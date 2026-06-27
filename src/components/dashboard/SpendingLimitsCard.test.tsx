@@ -169,6 +169,71 @@ describe("SpendingLimitsCard", () => {
 	});
 });
 
+describe("SpendingLimitsCard keyboard navigation", () => {
+	beforeEach(() => {
+		vi.stubGlobal("localStorage", {
+			getItem: vi.fn().mockReturnValue(null),
+			setItem: vi.fn(),
+		});
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("pressing Enter in the daily limit input triggers save", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		const dailyInput = screen.getByRole("spinbutton", {
+			name: /daily spending limit/i,
+		});
+		await user.click(dailyInput);
+		await user.keyboard("{Enter}");
+
+		expect(localStorage.setItem).toHaveBeenCalled();
+	});
+
+	it("pressing Enter in the tx limit input triggers save", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		const txInput = screen.getByRole("spinbutton", {
+			name: /per-transaction limit/i,
+		});
+		await user.click(txInput);
+		await user.keyboard("{Enter}");
+
+		expect(localStorage.setItem).toHaveBeenCalled();
+	});
+
+	it("pressing Escape blurs the input", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		const dailyInput = screen.getByRole("spinbutton", {
+			name: /daily spending limit/i,
+		});
+		await user.click(dailyInput);
+		expect(dailyInput).toHaveFocus();
+
+		await user.keyboard("{Escape}");
+		expect(dailyInput).not.toHaveFocus();
+	});
+
+	it("Save Settings button is focusable via keyboard", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		const saveBtn = screen.getByRole("button", { name: /save settings/i });
+		saveBtn.focus();
+		expect(saveBtn).toHaveFocus();
+
+		await user.keyboard("{Enter}");
+		expect(localStorage.setItem).toHaveBeenCalled();
+	});
+});
+
 describe("SpendingLimitsCard loading state", () => {
 	it("renders skeleton placeholders when loading is true", () => {
 		const { container } = render(<SpendingLimitsCard loading />);

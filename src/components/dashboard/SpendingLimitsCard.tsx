@@ -14,6 +14,18 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Toast } from "@/components/ui/toast";
 
+// Allow pressing Enter in an input to trigger save, Escape to blur.
+function useInputKeyNav(onSave: () => void) {
+	return (e: React.KeyboardEvent<HTMLInputElement>) => {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			onSave();
+		} else if (e.key === "Escape") {
+			e.currentTarget.blur();
+		}
+	};
+}
+
 const STORAGE_KEY = "spending-limits";
 const MIN_LIMIT = 1;
 const MAX_LIMIT = 1000000;
@@ -103,6 +115,8 @@ export function SpendingLimitsCard({
 			showToast("error", "Failed to save. Please try again.");
 		}
 	};
+
+	const handleInputKeyDown = useInputKeyNav(handleSave);
 
 	return (
 		<>
@@ -244,10 +258,10 @@ export function SpendingLimitsCard({
 					<div className="flex gap-3 rounded-lg border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-500/10 dark:bg-blue-500/5">
 						<AlertCircle className="size-5 shrink-0 text-blue-600 dark:text-blue-400" />
 						<p className="text-xs leading-relaxed text-blue-800 dark:text-blue-300">
-							Spending limits are enforced in real-time. If a transaction exceeds
-							your per-transaction limit or if your daily limit is reached,
-							subsequent API calls will be restricted until limits are increased
-							or the period resets.
+							Spending limits are enforced in real-time. If a transaction
+							exceeds your per-transaction limit or if your daily limit is
+							reached, subsequent API calls will be restricted until limits are
+							increased or the period resets.
 						</p>
 					</div>
 				</div>
