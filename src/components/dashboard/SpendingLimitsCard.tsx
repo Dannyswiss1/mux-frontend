@@ -43,6 +43,8 @@ export function SpendingLimitsCard({
 	const [dailyError, setDailyError] = useState<string | null>(null);
 	const [txError, setTxError] = useState<string | null>(null);
 	const [toastOpen, setToastOpen] = useState(false);
+	const [toastVariant, setToastVariant] = useState<"success" | "error">("success");
+	const [toastMessage, setToastMessage] = useState("Spending limits saved.");
 
 	const toastTimeoutRef = useRef<number | null>(null);
 
@@ -71,24 +73,27 @@ export function SpendingLimitsCard({
 
 	if (loading) return <SpendingLimitsCardSkeleton />;
 
-	const handleSave = () => {
-		const dErr = validateLimit(dailyLimit);
-		const tErr = validateLimit(transactionLimit);
-		setDailyError(dErr);
-		setTxError(tErr);
-		if (dErr || tErr) return;
-
-		window.localStorage.setItem(
-			STORAGE_KEY,
-			JSON.stringify({
-				dailyLimit: safeSaveValue(dailyLimit),
-				transactionLimit: safeSaveValue(transactionLimit),
-			}),
-		);
-
+	const showToast = (variant: "success" | "error", message: string) => {
+		setToastVariant(variant);
+		setToastMessage(message);
 		setToastOpen(true);
 		if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
 		toastTimeoutRef.current = window.setTimeout(() => setToastOpen(false), 3000);
+	};
+
+	const handleSave = () => {
+		try {
+			window.localStorage.setItem(
+				STORAGE_KEY,
+				JSON.stringify({
+					dailyLimit: safeSaveValue(dailyLimit),
+					transactionLimit: safeSaveValue(transactionLimit),
+				}),
+			);
+			showToast("success", "Spending limits saved.");
+		} catch {
+			showToast("error", "Failed to save. Please try again.");
+		}
 	};
 
 	return (
@@ -239,7 +244,7 @@ export function SpendingLimitsCard({
 					</Button>
 				</div>
 			</div>
-			<Toast open={toastOpen} message="Spending limits saved." />
+			<Toast open={toastOpen} message={toastMessage} variant={toastVariant} />
 		</>
 	);
 }
