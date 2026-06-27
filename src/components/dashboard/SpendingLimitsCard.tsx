@@ -7,6 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Toast } from "@/components/ui/toast";
 
+// Allow pressing Enter in an input to trigger save, Escape to blur.
+function useInputKeyNav(onSave: () => void) {
+	return (e: React.KeyboardEvent<HTMLInputElement>) => {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			onSave();
+		} else if (e.key === "Escape") {
+			e.currentTarget.blur();
+		}
+	};
+}
+
 const STORAGE_KEY = "spending-limits";
 const MIN_LIMIT = 1;
 const MAX_LIMIT = 1000000;
@@ -93,6 +105,8 @@ export function SpendingLimitsCard({
 		}, 3000);
 	};
 
+	const handleInputKeyDown = useInputKeyNav(handleSave);
+
 	return (
 		<>
 			<div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
@@ -165,6 +179,7 @@ export function SpendingLimitsCard({
 									step={1}
 									value={dailyLimit}
 									onChange={(e) => setDailyLimit(e.target.value)}
+									onKeyDown={handleInputKeyDown}
 									className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-2 pl-7 pr-3 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-800 dark:bg-zinc-900"
 									placeholder="0.00"
 								/>
@@ -194,6 +209,7 @@ export function SpendingLimitsCard({
 									step={1}
 									value={transactionLimit}
 									onChange={(e) => setTransactionLimit(e.target.value)}
+									onKeyDown={handleInputKeyDown}
 									className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-2 pl-7 pr-3 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-800 dark:bg-zinc-900"
 									placeholder="0.00"
 								/>
@@ -207,10 +223,10 @@ export function SpendingLimitsCard({
 					<div className="flex gap-3 rounded-lg border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-500/10 dark:bg-blue-500/5">
 						<AlertCircle className="size-5 shrink-0 text-blue-600 dark:text-blue-400" />
 						<p className="text-xs leading-relaxed text-blue-800 dark:text-blue-300">
-							Spending limits are enforced in real-time. If a transaction exceeds
-							your per-transaction limit or if your daily limit is reached,
-							subsequent API calls will be restricted until limits are increased
-							or the period resets.
+							Spending limits are enforced in real-time. If a transaction
+							exceeds your per-transaction limit or if your daily limit is
+							reached, subsequent API calls will be restricted until limits are
+							increased or the period resets.
 						</p>
 					</div>
 				</div>
