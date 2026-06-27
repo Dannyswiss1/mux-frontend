@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Copy, RefreshCw } from "lucide-react";
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -20,6 +21,8 @@ export function WalletDetail({ id }: WalletDetailProps) {
 	const { wallet, balance, loading, error, lastUpdated, refresh } =
 		useWalletBalance(id);
 	const { copy, copied } = useCopyToClipboard();
+	const balanceHeadingId = useId();
+	const infoHeadingId = useId();
 
 	const isNotFound =
 		!!error &&
@@ -86,6 +89,7 @@ export function WalletDetail({ id }: WalletDetailProps) {
 						>
 							<RefreshCw
 								className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+								aria-hidden="true"
 							/>
 						</button>
 					</div>
@@ -107,7 +111,7 @@ export function WalletDetail({ id }: WalletDetailProps) {
 						Balance refresh failed: {error}
 					</p>
 				)}
-			</div>
+			</section>
 
 			{/* Wallet metadata */}
 			{wallet ? (
@@ -132,9 +136,9 @@ export function WalletDetail({ id }: WalletDetailProps) {
 									title={copied ? "Copied!" : "Copy address"}
 								>
 									{copied ? (
-										<Check className="h-4 w-4 text-green-500" />
+										<Check className="h-4 w-4 text-green-500" aria-hidden="true" />
 									) : (
-										<Copy className="h-4 w-4" />
+										<Copy className="h-4 w-4" aria-hidden="true" />
 									)}
 								</Button>
 							</dd>
@@ -174,7 +178,7 @@ export function WalletDetail({ id }: WalletDetailProps) {
 							</div>
 						)}
 					</dl>
-				</div>
+				</section>
 			) : (
 				<div className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
 					<Skeleton className="mb-4 h-4 w-24" />
