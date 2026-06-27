@@ -1,14 +1,44 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { InitiateRecoveryCTA } from "@/components/recovery/InitiateRecoveryCTA";
 import { RecoveryExplanation } from "@/components/recovery/RecoveryExplanation";
 import { RecoveryFAQ } from "@/components/recovery/RecoveryFAQ";
 import { RecoveryLoadingState } from "@/components/recovery/RecoveryLoadingState";
+import { Toast } from "@/components/ui/toast";
 import { useRecovery } from "@/hooks/useRecovery";
 
 export default function RecoveryPage() {
 	const recovery = useRecovery();
+	const [toast, setToast] = useState<{
+		open: boolean;
+		message: string;
+		variant: "success" | "error";
+	}>({ open: false, message: "", variant: "success" });
+
+	useEffect(() => {
+		if (recovery.state === "success") {
+			setToast({
+				open: true,
+				message: "Recovery request submitted successfully.",
+				variant: "success",
+			});
+		} else if (recovery.state === "error" && recovery.errorMessage) {
+			setToast({
+				open: true,
+				message: recovery.errorMessage,
+				variant: "error",
+			});
+		}
+	}, [recovery.state, recovery.errorMessage]);
+
+	// Auto-dismiss toast after 4 seconds
+	useEffect(() => {
+		if (!toast.open) return;
+		const timer = setTimeout(() => setToast((t) => ({ ...t, open: false })), 4000);
+		return () => clearTimeout(timer);
+	}, [toast.open]);
 
 	return (
 		<main className="min-h-screen bg-zinc-50 dark:bg-black p-6 md:p-12">
@@ -50,6 +80,8 @@ export default function RecoveryPage() {
 					</>
 				)}
 			</div>
+
+			<Toast open={toast.open} message={toast.message} variant={toast.variant} />
 		</main>
 	);
 }

@@ -212,73 +212,46 @@ describe("SpendingLimitsCard loading state", () => {
 	});
 });
 
-describe("SpendingLimitsCard copy-to-clipboard", () => {
-	let clipboardSpy: ReturnType<typeof vi.spyOn>;
-
+describe("SpendingLimitsCard toast feedback", () => {
 	beforeEach(() => {
-		clipboardSpy = vi
-			.spyOn(navigator.clipboard, "writeText")
-			.mockResolvedValue(undefined);
+		vi.stubGlobal("localStorage", {
+			getItem: vi.fn().mockReturnValue(null),
+			setItem: vi.fn(),
+		});
 	});
 
 	afterEach(() => {
-		clipboardSpy.mockRestore();
+		vi.unstubAllGlobals();
 	});
 
-	it("renders copy buttons for both limit fields", () => {
-		render(<SpendingLimitsCard />);
-
-		expect(
-			screen.getByRole("button", { name: /copy daily limit/i }),
-		).toBeInTheDocument();
-		expect(
-			screen.getByRole("button", { name: /copy transaction limit/i }),
-		).toBeInTheDocument();
-	});
-
-	it("copies the daily limit value to clipboard on click", async () => {
+	it("shows success toast after saving valid settings", async () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
 
-		await user.click(screen.getByRole("button", { name: /copy daily limit/i }));
+		await user.click(screen.getByRole("button", { name: /save settings/i }));
 
-		expect(clipboardSpy).toHaveBeenCalledWith("5000");
+		expect(screen.getByRole("status")).toBeInTheDocument();
+		expect(screen.getByText("Success")).toBeInTheDocument();
+		expect(screen.getByText(/spending limits saved/i)).toBeInTheDocument();
 	});
 
-	it("copies the transaction limit value to clipboard on click", async () => {
-		const user = userEvent.setup();
-		render(<SpendingLimitsCard />);
-
-		await user.click(
-			screen.getByRole("button", { name: /copy transaction limit/i }),
-		);
-
-		expect(clipboardSpy).toHaveBeenCalledWith("1000");
-	});
-
-	it("shows 'Copied' label after clicking copy", async () => {
-		const user = userEvent.setup();
-		render(<SpendingLimitsCard />);
-
-		await user.click(screen.getByRole("button", { name: /copy daily limit/i }));
-
-		expect(
-			screen.getByRole("button", { name: /daily limit copied/i }),
-		).toBeInTheDocument();
-	});
-
-	it("copies the updated value after input changes", async () => {
-		const user = userEvent.setup();
-		render(<SpendingLimitsCard />);
-
-		const dailyInput = screen.getByRole("spinbutton", {
-			name: /daily spending limit/i,
+	it("shows error toast when localStorage throws", async () => {
+		vi.mocked(localStorage.setItem).mockImplementation(() => {
+			throw new Error("QuotaExceededError");
 		});
-		await user.clear(dailyInput);
-		await user.type(dailyInput, "9999");
 
-		await user.click(screen.getByRole("button", { name: /copy daily limit/i }));
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
 
-		expect(clipboardSpy).toHaveBeenCalledWith("9999");
+		await user.click(screen.getByRole("button", { name: /save settings/i }));
+
+		expect(screen.getByRole("status")).toBeInTheDocument();
+		expect(screen.getByText("Error")).toBeInTheDocument();
+		expect(screen.getByText(/failed to save/i)).toBeInTheDocument();
+	});
+
+	it("toast is not visible before saving", () => {
+		render(<SpendingLimitsCard />);
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
 	});
 });
