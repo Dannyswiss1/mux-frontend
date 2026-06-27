@@ -14,6 +14,9 @@ export default defineConfig({
 			include: [
 				"src/components/wallet/**",
 				"src/components/analytics/**",
+				"src/components/ui/**",
+				"src/components/transactions/**",
+				"src/lib/**",
 				"src/utils/**",
 				"src/hooks/**",
 				"src/mock-data/**",
