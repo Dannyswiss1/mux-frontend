@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ExplorerLink } from "@/components/ui/ExplorerLink";
 import { TestnetHint } from "@/components/ui/TestnetHint";
 import { Toast } from "@/components/ui/toast";
@@ -184,9 +185,10 @@ export function WalletTable({ wallets, onAddWallet }: WalletTableProps) {
 				</div>
 
 				{wallets.length === 0 ? (
-					<div className="py-12 text-center text-zinc-500">
-						No wallets found for this network.
-					</div>
+					<EmptyState
+						title="No wallets found"
+						description="No wallets found for this network."
+					/>
 				) : (
 					<>
 						{/* Desktop Table View */}
