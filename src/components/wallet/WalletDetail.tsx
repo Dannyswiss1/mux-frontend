@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, RefreshCw } from "lucide-react";
+import { AlertCircle, Check, Copy, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -18,7 +18,7 @@ interface WalletDetailProps {
 export function WalletDetail({ id }: WalletDetailProps) {
 	const { wallet, balance, loading, error, lastUpdated, refresh } =
 		useWalletBalance(id);
-	const { copy, copied } = useCopyToClipboard();
+	const { copy, copied, error: copyError } = useCopyToClipboard();
 
 	if (error && !wallet) {
 		return (
@@ -81,22 +81,54 @@ export function WalletDetail({ id }: WalletDetailProps) {
 							<dt className="text-sm text-zinc-500 dark:text-zinc-400">
 								Address
 							</dt>
-							<dd className="flex items-center gap-2">
-								<code className="rounded bg-zinc-100 px-2 py-1 font-mono text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-									{truncateAddress(wallet.address)}
-								</code>
-								<Button
-									variant="ghost"
-									size="icon-sm"
-									onClick={() => copy(wallet.address)}
-									title={copied ? "Copied!" : "Copy address"}
-								>
-									{copied ? (
-										<Check className="h-4 w-4 text-green-500" />
-									) : (
-										<Copy className="h-4 w-4" />
-									)}
-								</Button>
+							<dd className="flex flex-col items-end gap-1">
+								<div className="flex items-center gap-2">
+									<code className="rounded bg-zinc-100 px-2 py-1 font-mono text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+										{truncateAddress(wallet.address)}
+									</code>
+									<Button
+										variant="ghost"
+										size="icon-sm"
+										onClick={() => copy(wallet.address)}
+										aria-label={
+											copyError
+												? copyError
+												: copied
+													? "Address copied"
+													: "Copy wallet address"
+										}
+										title={
+											copyError
+												? copyError
+												: copied
+													? "Copied!"
+													: "Copy address"
+										}
+										disabled={!!copyError}
+									>
+										{copyError ? (
+											<AlertCircle
+												className="h-4 w-4 text-red-500"
+												aria-hidden="true"
+											/>
+										) : copied ? (
+											<Check
+												className="h-4 w-4 text-green-500"
+												aria-hidden="true"
+											/>
+										) : (
+											<Copy className="h-4 w-4" aria-hidden="true" />
+										)}
+									</Button>
+								</div>
+								{copyError && (
+									<p
+										role="alert"
+										className="text-xs text-red-600 dark:text-red-400"
+									>
+										{copyError}
+									</p>
+								)}
 							</dd>
 						</div>
 						<div className="flex items-center justify-between">

@@ -1,8 +1,10 @@
 "use client";
 
+import { AlertCircle, Check, Copy } from "lucide-react";
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import TransactionsTable from "@/components/TransactionsTable/TransactionsTable";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -10,11 +12,11 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { NetworkBadge } from "@/components/wallet/NetworkBadge";
 import ReceiveWalletModal from "@/components/wallet/ReceiveWalletModal";
 import { StatusIndicator } from "@/components/wallet/StatusIndicator";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useWallets } from "@/hooks/useWallets";
 import { isValidStellarAddress } from "@/utils/addressValidation";
 import { formatDate } from "@/utils/dateFormatting";
 import { isWalletFunded } from "@/utils/walletUtils";
-import TransactionsTable from "@/components/TransactionsTable/TransactionsTable";
 
 function WalletPageContent() {
 	const { wallets, loading, error, refetch } = useWallets();
@@ -22,6 +24,7 @@ function WalletPageContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const [isReceiveOpen, setIsReceiveOpen] = useState(false);
+	const { copy, copied, error: copyError } = useCopyToClipboard();
 
 	const wallet = wallets?.[0] ?? null;
 	const canReceive = !!wallet && isValidStellarAddress(wallet.address.trim());
@@ -140,9 +143,53 @@ function WalletPageContent() {
 									Address
 								</dt>
 								<dd className="mt-1">
-									<code className="break-all rounded bg-neutral-100 px-2 py-1 font-mono text-sm text-neutral-700">
-										{wallet.address}
-									</code>
+									<div className="flex items-start gap-2 rounded-lg border border-neutral-200 bg-neutral-100 px-3 py-2">
+										<code className="min-w-0 flex-1 break-all font-mono text-sm text-neutral-700">
+											{wallet.address}
+										</code>
+										<Button
+											variant="ghost"
+											size="icon-sm"
+											onClick={() => copy(wallet.address, wallet.address)}
+											aria-label={
+												copyError
+													? copyError
+													: copied
+														? "Address copied"
+														: "Copy wallet address"
+											}
+											title={
+												copyError
+													? copyError
+													: copied
+														? "Copied!"
+														: "Copy address"
+											}
+											className="shrink-0 text-neutral-500 hover:text-neutral-700"
+										>
+											{copyError ? (
+												<AlertCircle
+													className="h-4 w-4 text-red-500"
+													aria-hidden="true"
+												/>
+											) : copied ? (
+												<Check
+													className="h-4 w-4 text-green-600"
+													aria-hidden="true"
+												/>
+											) : (
+												<Copy className="h-4 w-4" aria-hidden="true" />
+											)}
+										</Button>
+									</div>
+									{copyError && (
+										<p
+											role="alert"
+											className="mt-1 text-xs text-red-600"
+										>
+											{copyError}
+										</p>
+									)}
 								</dd>
 							</div>
 						</dl>
