@@ -9,6 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { NetworkBadge } from "@/components/wallet/NetworkBadge";
 import ReceiveWalletModal from "@/components/wallet/ReceiveWalletModal";
+import { SendWalletModal } from "@/components/wallet/SendWalletModal";
 import { StatusIndicator } from "@/components/wallet/StatusIndicator";
 import { useWallets } from "@/hooks/useWallets";
 import { isValidStellarAddress } from "@/utils/addressValidation";
@@ -22,6 +23,7 @@ function WalletPageContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const [isReceiveOpen, setIsReceiveOpen] = useState(false);
+	const [isSendOpen, setIsSendOpen] = useState(false);
 
 	const wallet = wallets?.[0] ?? null;
 	const canReceive = !!wallet && isValidStellarAddress(wallet.address.trim());
@@ -162,6 +164,7 @@ function WalletPageContent() {
 								<div className="flex flex-wrap gap-3">
 									<Button
 										disabled={!isWalletFunded(wallet)}
+										onClick={() => setIsSendOpen(true)}
 										title={
 											isWalletFunded(wallet)
 												? "Send funds from this wallet"
@@ -239,6 +242,11 @@ function WalletPageContent() {
 				isOpen={isReceiveOpen}
 				wallet={wallet}
 				onClose={closeReceive}
+			/>
+			<SendWalletModal
+				isOpen={isSendOpen}
+				wallet={wallet}
+				onClose={() => setIsSendOpen(false)}
 			/>
 		</div>
 	);
