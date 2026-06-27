@@ -11,6 +11,7 @@ import { MetricsCards } from "@/components/analytics/MetricsCards";
 import { TopAssetsTable } from "@/components/analytics/TopAssetsTable";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { useAnalyticsTracking } from "@/hooks/useAnalyticsTracking";
 
 export default function AnalyticsPage() {
 	const [range, setRange] = useState<DateRange>(() => {
@@ -23,6 +24,12 @@ export default function AnalyticsPage() {
 		};
 	});
 	const { data, isLoading, isError, error, refetch } = useAnalytics();
+	const { track } = useAnalyticsTracking("analytics");
+
+	function handleRangeChange(newRange: DateRange) {
+		setRange(newRange);
+		track("date_range_changed", { from: newRange.from, to: newRange.to });
+	}
 
 	if (isLoading) {
 		return <AnalyticsLoadingSkeleton />;
@@ -40,7 +47,7 @@ export default function AnalyticsPage() {
 
 	return (
 		<div className="space-y-6">
-			<AnalyticsHeader range={range} onRangeChange={setRange} />
+			<AnalyticsHeader range={range} onRangeChange={handleRangeChange} />
 
 			<MetricsCards metrics={data.metrics} />
 

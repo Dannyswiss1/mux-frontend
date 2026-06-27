@@ -1,17 +1,40 @@
 import { cn } from "@/lib/utils";
 
+/**
+ * Props for the {@link RecoveryLoadingState} skeleton component.
+ */
 interface RecoveryLoadingStateProps {
-	/** Optional message shown below the spinner. */
+	/**
+	 * Accessible label announced by screen readers while the skeleton is
+	 * visible. Also rendered as a visually-hidden `<span>` below the skeleton.
+	 *
+	 * @default "Loading recovery status…"
+	 */
 	message?: string;
-	/** Extra classes on the root element. */
+
+	/**
+	 * Additional Tailwind classes merged onto the root wrapper element.
+	 */
 	className?: string;
 }
 
 /**
- * Full-section loading state for the recovery UI.
- * Shown while initial recovery status is being fetched.
- * Uses a skeleton layout that mirrors the RecoveryExplanation structure
- * so the page doesn't jump when content loads.
+ * Full-section skeleton loader for the recovery UI.
+ *
+ * Shown while the initial recovery status is being fetched from the backend.
+ * The skeleton mirrors the visual structure of {@link RecoveryExplanation} so
+ * the page layout does not shift when real content replaces the placeholder.
+ *
+ * Accessibility: the root element carries `role="status"`, `aria-live="polite"`
+ * and `aria-busy="true"` so assistive technologies announce the loading state
+ * without interrupting the user.
+ *
+ * @example
+ * {recovery.state === "loading" && <RecoveryLoadingState />}
+ *
+ * @example
+ * // Custom accessible message
+ * <RecoveryLoadingState message="Fetching wallet status…" />
  */
 export function RecoveryLoadingState({
 	message = "Loading recovery status\u2026",
