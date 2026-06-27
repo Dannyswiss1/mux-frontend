@@ -80,9 +80,38 @@ const NetworkBadge = ({ network }: { network: TransactionNetwork }) => {
 	);
 };
 
+// --- Props ---
+
+export interface TransactionsTableProps {
+	/** Optional wallet address to scope transactions */
+	address?: string;
+	/** Pre-fetched transactions (bypasses internal hook) */
+	transactions?: Transaction[];
+	/** Loading state (used when transactions prop is provided) */
+	loading?: boolean;
+	/** Error message (used when transactions prop is provided) */
+	error?: string | null;
+	/** Retry callback for error state */
+	onRetry?: () => void;
+}
+
 // --- Main Component ---
 
-export default function TransactionsTable({ address }: { address?: string } = {}) {
+export default function TransactionsTable({
+	address,
+	transactions: transactionsProp,
+	loading: loadingProp,
+	error: errorProp,
+	onRetry,
+}: TransactionsTableProps = {}) {
+	// Use internal hook unless caller provides data directly
+	const hook = useTransactions(transactionsProp === undefined ? address : undefined);
+
+	const transactions = transactionsProp ?? hook.transactions;
+	const loading = loadingProp ?? hook.loading;
+	const error = errorProp !== undefined ? errorProp : hook.error;
+	const handleRetry = onRetry ?? hook.refetch;
+
 	const [search, setSearch] = useState("");
 	const [statusFilter, setStatusFilter] = useState<"all" | TransactionStatus>(
 		"all",
@@ -106,8 +135,8 @@ export default function TransactionsTable({ address }: { address?: string } = {}
 	}, [address]);
 
 	const filteredData = useMemo(() => {
-		return mockTransactions.filter((tx) => {
-			if (address && tx.from !== address && tx.to !== address) {
+		return transactions.filter((tx) => {
+			if (address && transactionsProp !== undefined && tx.from !== address && tx.to !== address) {
 				return false;
 			}
 			const q = search.toLowerCase();
@@ -122,7 +151,7 @@ export default function TransactionsTable({ address }: { address?: string } = {}
 				networkFilter === "all" || tx.network === networkFilter;
 			return matchesSearch && matchesStatus && matchesNetwork;
 		});
-	}, [search, statusFilter, networkFilter]);
+	}, [transactions, search, statusFilter, networkFilter, address, transactionsProp]);
 
 	const sortedData = useMemo(() => {
 		return [...filteredData].sort((a, b) => {
@@ -188,6 +217,53 @@ export default function TransactionsTable({ address }: { address?: string } = {}
 	const hasActiveFilters =
 		search.length > 0 || statusFilter !== "all" || networkFilter !== "all";
 
+	// --- Loading skeleton ---
+	if (loading) {
+		return (
+			<div
+				className="w-full max-w-6xl mx-auto p-4 md:p-8 space-y-6 font-sans"
+				aria-busy="true"
+				aria-label="Loading transactions"
+				data-testid="transactions-loading"
+			>
+				<div className="h-8 w-48 rounded bg-slate-200 animate-pulse" />
+				<div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden divide-y divide-slate-100">
+					{Array.from({ length: 5 }).map((_, i) => (
+						// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
+						<div key={i} className="p-4 flex gap-4">
+							<div className="h-4 flex-1 rounded bg-slate-100 animate-pulse" />
+							<div className="h-4 w-24 rounded bg-slate-100 animate-pulse" />
+						</div>
+					))}
+				</div>
+			</div>
+		);
+	}
+
+	// --- Error state ---
+	if (error) {
+		return (
+			<div className="w-full max-w-6xl mx-auto p-4 md:p-8">
+				<ErrorState
+					description={error}
+					retry={{ onRetry: handleRetry }}
+				/>
+			</div>
+		);
+	}
+
+	// --- Empty state (no data at all, no filters active) ---
+	if (transactions.length === 0) {
+		return (
+			<div className="w-full max-w-6xl mx-auto p-4 md:p-8">
+				<EmptyState
+					title="No transactions yet"
+					description="Transactions will appear here once your Mux wallets start sending or receiving XLM."
+				/>
+			</div>
+		);
+	}
+
 	return (
 		<div className="w-full max-w-6xl mx-auto p-4 md:p-8 space-y-6 font-sans">
 			{/* Header */}
@@ -211,7 +287,7 @@ export default function TransactionsTable({ address }: { address?: string } = {}
 						<input
 							type="text"
 							placeholder="Hash, address, memo…"
-						aria-label="Search transactions"
+							aria-label="Search transactions"
 							className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
 							value={search}
 							onChange={(e) => {
@@ -342,10 +418,10 @@ export default function TransactionsTable({ address }: { address?: string } = {}
 				<div className="divide-y divide-slate-100">
 					{currentData.length > 0 ? (
 						currentData.map((tx) => (
-								<div
-									key={tx.hash}
-									data-testid="tx-row"
-									className="group p-4 hover:bg-slate-50 transition-colors"
+							<div
+								key={tx.hash}
+								data-testid="tx-row"
+								className="group p-4 hover:bg-slate-50 transition-colors"
 							>
 								{/* Desktop row */}
 								<div className="hidden lg:grid grid-cols-12 gap-2 items-center">
@@ -453,7 +529,7 @@ export default function TransactionsTable({ address }: { address?: string } = {}
 							</div>
 						))
 					) : (
-						<div className="p-12 text-center">
+						<div className="p-12 text-center" data-testid="no-results">
 							<div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 mb-3">
 								<Search size={20} className="text-slate-400" />
 							</div>
