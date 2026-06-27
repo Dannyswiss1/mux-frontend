@@ -1,7 +1,14 @@
 "use client";
 
-import { AlertCircle, DollarSign, TrendingUp, Wallet } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+	AlertCircle,
+	Check,
+	Clipboard,
+	DollarSign,
+	TrendingUp,
+	Wallet,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -10,6 +17,7 @@ import { Toast } from "@/components/ui/toast";
 const STORAGE_KEY = "spending-limits";
 const MIN_LIMIT = 1;
 const MAX_LIMIT = 1000000;
+const COPY_RESET_MS = 2000;
 
 function parseLimit(value: string) {
 	const number = Number(value);
@@ -149,13 +157,16 @@ export function SpendingLimitsCard({
 
 					<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 						<div className="space-y-2">
-							<label
-								htmlFor="daily-limit"
-								className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
-							>
-								<DollarSign className="size-4" />
-								Daily Spending Limit
-							</label>
+							<div className="flex items-center justify-between">
+								<label
+									htmlFor="daily-limit"
+									className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
+								>
+									<DollarSign className="size-4" />
+									Daily Spending Limit
+								</label>
+								<CopyButton value={dailyLimit} label="daily limit" />
+							</div>
 							<div className="relative">
 								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
 									$
@@ -188,13 +199,16 @@ export function SpendingLimitsCard({
 						</div>
 
 						<div className="space-y-2">
-							<label
-								htmlFor="tx-limit"
-								className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
-							>
-								<Wallet className="size-4" />
-								Per-Transaction Limit
-							</label>
+							<div className="flex items-center justify-between">
+								<label
+									htmlFor="tx-limit"
+									className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
+								>
+									<Wallet className="size-4" />
+									Per-Transaction Limit
+								</label>
+								<CopyButton value={transactionLimit} label="transaction limit" />
+							</div>
 							<div className="relative">
 								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
 									$
