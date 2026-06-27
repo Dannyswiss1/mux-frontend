@@ -7,6 +7,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ExplorerLink } from "@/components/ui/ExplorerLink";
 import { TestnetHint } from "@/components/ui/TestnetHint";
+import { Toast } from "@/components/ui/toast";
 import {
 	Table,
 	TableBody,
@@ -25,19 +26,49 @@ import { formatDate } from "@/utils/dateFormatting";
 function WalletAddressCell({
 	address,
 	network,
+	onCopySuccess,
+	onCopyError,
 }: {
 	address: string;
 	network: "mainnet" | "testnet";
+	onCopySuccess?: (address: string) => void;
+	onCopyError?: (error: string) => void;
 }) {
 	const { copy, copied, error } = useCopyToClipboard();
 
-	const handleCopy = async () => {
-		await copy(address, address);
+	const handleCopy = async (e: React.MouseEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+		
+		try {
+			await copy(address, address);
+			// Success callback will be triggered by effect monitoring copied state
+		} catch (err) {
+			// Error will be set in hook state
+			const errorMessage = err instanceof Error ? err.message : "Failed to copy";
+			if (onCopyError) {
+				onCopyError(errorMessage);
+			}
+		}
 	};
+
+	// Trigger success callback when copied changes to true
+	React.useEffect(() => {
+		if (copied && onCopySuccess) {
+			onCopySuccess(address);
+		}
+	}, [copied, address, onCopySuccess]);
+
+	// Trigger error callback when error is set
+	React.useEffect(() => {
+		if (error && onCopyError) {
+			onCopyError(error);
+		}
+	}, [error, onCopyError]);
 
 	return (
 		<div className="flex items-center gap-1">
-			<code className="rounded bg-zinc-100 px-2 py-1 font-mono text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+			<code className="rounded bg-zinc-100 px-2 py-1 font-mono text-sm text-zinc-700 transition-colors dark:bg-zinc-800 dark:text-zinc-300">
 				{truncateAddress(address)}
 			</code>
 			<Button
@@ -46,13 +77,16 @@ function WalletAddressCell({
 				onClick={handleCopy}
 				title={error ? error : copied ? "Copied!" : "Copy address"}
 				disabled={error !== null}
+				className="transition-all hover:scale-110"
+				aria-label={copied ? "Address copied to clipboard" : "Copy address to clipboard"}
+				data-testid="copy-address-button"
 			>
 				{error ? (
-					<AlertCircle className="h-4 w-4 text-red-500" />
+					<AlertCircle className="h-4 w-4 text-red-500" aria-hidden="true" />
 				) : copied ? (
-					<Check className="h-4 w-4 text-green-500" />
+					<Check className="h-4 w-4 text-green-500 animate-in fade-in zoom-in duration-200" aria-hidden="true" />
 				) : (
-					<Copy className="h-4 w-4" />
+					<Copy className="h-4 w-4 transition-colors hover:text-blue-600 dark:hover:text-blue-400" aria-hidden="true" />
 				)}
 			</Button>
 			<ExplorerLink
@@ -286,6 +320,48 @@ export function WalletTable({ wallets, onAddWallet }: WalletTableProps) {
 						</div>
 					</>
 				)}
+			</div>
+
+			{/* Toast notification for copy feedback */}
+			<CopyToast 
+				open={toastOpen} 
+				message={toastMessage} 
+				type={toastType}
+			/>
+		</div>
+	);
+}
+
+interface CopyToastProps {
+	open: boolean;
+	message: string;
+	type: "success" | "error";
+}
+
+function CopyToast({ open, message, type }: CopyToastProps) {
+	if (!open) {
+		return null;
+	}
+
+	return (
+		<div 
+			className="fixed right-4 bottom-4 z-50 max-w-sm rounded-lg bg-zinc-950/95 p-4 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur-md animate-in slide-in-from-bottom-5 fade-in duration-300"
+			role="status"
+			aria-live="polite"
+			data-testid="copy-toast"
+		>
+			<div className="flex items-start gap-3">
+				{type === "success" ? (
+					<Check className="h-5 w-5 text-green-400 flex-shrink-0" aria-hidden="true" />
+				) : (
+					<AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" aria-hidden="true" />
+				)}
+				<div className="space-y-1 flex-1 min-w-0">
+					<p className="text-sm font-semibold">
+						{type === "success" ? "Copied!" : "Copy Failed"}
+					</p>
+					<p className="text-sm text-zinc-200 break-words">{message}</p>
+				</div>
 			</div>
 		</div>
 	);
