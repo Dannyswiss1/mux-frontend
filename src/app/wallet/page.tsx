@@ -2,8 +2,8 @@
 
 import { AlertCircle, Check, Copy } from "lucide-react";
 import Link from "next/link";
-import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import TransactionsTable from "@/components/TransactionsTable/TransactionsTable";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -45,25 +45,27 @@ function WalletPageContent() {
 	};
 
 	return (
-		<div className="min-h-screen bg-neutral-50 text-neutral-900 font-sans p-6 md:p-12">
-			<div className="max-w-4xl mx-auto space-y-8">
-				<header className="flex items-center justify-between mb-8">
-					<div>
-						<h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+		<div className="min-h-screen bg-neutral-50 text-neutral-900 font-sans p-4 sm:p-6 md:p-12">
+			<div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+				<header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6 sm:mb-8">
+					<div className="min-w-0">
+						<h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
 							Wallet Details
 						</h1>
 						{wallet ? (
-							<p className="text-neutral-500 mt-1">{wallet.address}</p>
+							<p className="text-neutral-500 mt-1 break-all text-sm sm:text-base">
+								{wallet.address}
+							</p>
 						) : (
 							<p className="text-neutral-500 mt-1">
 								Manage and view your wallet assets
 							</p>
 						)}
 					</div>
-					<div className="flex gap-3">
+					<div className="flex shrink-0 gap-3">
 						<Link
 							href="/"
-							className="px-4 py-2 text-sm font-medium text-neutral-600 bg-white border border-neutral-200 rounded-lg shadow-xs hover:bg-neutral-50 transition-colors"
+							className="px-4 py-2 text-sm font-medium text-neutral-600 bg-white border border-neutral-200 rounded-lg shadow-xs hover:bg-neutral-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
 						>
 							Back to Dashboard
 						</Link>
@@ -96,8 +98,8 @@ function WalletPageContent() {
 				)}
 
 				{!loading && wallet && (
-					<section className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm space-y-6">
-						<dl className="grid gap-6 sm:grid-cols-2">
+					<section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-8 shadow-sm space-y-6">
+						<dl className="grid gap-4 sm:gap-6 sm:grid-cols-2">
 							<div>
 								<dt className="text-sm font-medium text-neutral-500">
 									Network
@@ -237,12 +239,12 @@ function WalletPageContent() {
 										</svg>
 										Send
 									</Button>
-										<Button
-											variant="outline"
-											onClick={openReceive}
-											disabled={!canReceive}
-											title={
-												canReceive
+									<Button
+										variant="outline"
+										onClick={openReceive}
+										disabled={!canReceive}
+										title={
+											canReceive
 												? "Show receive QR stub"
 												: "Wallet address is invalid"
 										}

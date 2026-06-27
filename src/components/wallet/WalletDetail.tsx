@@ -1,9 +1,11 @@
 "use client";
 
-import { AlertCircle, Check, Copy, RefreshCw } from "lucide-react";
+import { Check, Copy, RefreshCw } from "lucide-react";
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton, WalletDetailSkeleton } from "@/components/ui/Skeleton";
 import { NetworkBadge } from "@/components/wallet/NetworkBadge";
 import { StatusIndicator } from "@/components/wallet/StatusIndicator";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
@@ -18,22 +20,57 @@ interface WalletDetailProps {
 export function WalletDetail({ id }: WalletDetailProps) {
 	const { wallet, balance, loading, error, lastUpdated, refresh } =
 		useWalletBalance(id);
-	const { copy, copied, error: copyError } = useCopyToClipboard();
+	const { copy, copied } = useCopyToClipboard();
+	const balanceHeadingId = useId();
+	const infoHeadingId = useId();
+
+	const isNotFound =
+		!!error &&
+		(error.toLowerCase().includes("not found") || error === "not_found");
+
+	if (isNotFound) {
+		return (
+			<EmptyState
+				title="Wallet not found"
+				description="No wallet exists for this ID. It may have been removed or the link is invalid."
+			/>
+		);
+	}
 
 	if (error && !wallet) {
+		const isNotFound =
+			error.toLowerCase().includes("not found") || error === "not_found";
 		return (
 			<ErrorState
-				description={error}
-				retry={{ label: "Retry", onRetry: refresh }}
+				title={isNotFound ? "Wallet not found" : "Failed to load wallet"}
+				description={
+					isNotFound
+						? "This wallet doesn't exist or the ID is invalid."
+						: `${error}. Check your connection and try again.`
+				}
+				retry={
+					isNotFound
+						? undefined
+						: { label: "Try Again", onRetry: refresh }
+				}
+			/>
+		);
+	}
+
+	if (!loading && !wallet) {
+		return (
+			<EmptyState
+				title="No wallet data"
+				description="This wallet has no data to display yet."
 			/>
 		);
 	}
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-4 sm:space-y-6">
 			{/* Balance card */}
-			<div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-				<div className="mb-4 flex items-center justify-between">
+			<div className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
+				<div className="mb-4 flex flex-wrap items-center justify-between gap-2">
 					<h2 className="text-sm font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
 						Live Balance
 					</h2>
@@ -48,90 +85,65 @@ export function WalletDetail({ id }: WalletDetailProps) {
 							onClick={refresh}
 							disabled={loading}
 							aria-label="Refresh balance"
-							className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+							className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
 						>
 							<RefreshCw
 								className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+								aria-hidden="true"
 							/>
 						</button>
 					</div>
 				</div>
 
 				{loading && !balance ? (
-					<Skeleton className="h-12 w-48" />
+					<Skeleton className="h-12 w-48" aria-hidden="true" />
 				) : (
-					<p className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+					<p className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50">
 						{balance ?? "—"}
 					</p>
 				)}
 
 				{error && wallet && (
-					<p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+					<p
+						role="alert"
+						className="mt-2 text-sm text-red-600 dark:text-red-400"
+					>
+						Balance refresh failed: {error}
+					</p>
 				)}
-			</div>
+			</section>
 
 			{/* Wallet metadata */}
 			{wallet ? (
-				<div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+				<div className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
 					<h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
 						Wallet Info
 					</h2>
 					<dl className="space-y-4">
-						<div className="flex items-center justify-between">
+						<div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
 							<dt className="text-sm text-zinc-500 dark:text-zinc-400">
 								Address
 							</dt>
-							<dd className="flex flex-col items-end gap-1">
-								<div className="flex items-center gap-2">
-									<code className="rounded bg-zinc-100 px-2 py-1 font-mono text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-										{truncateAddress(wallet.address)}
-									</code>
-									<Button
-										variant="ghost"
-										size="icon-sm"
-										onClick={() => copy(wallet.address)}
-										aria-label={
-											copyError
-												? copyError
-												: copied
-													? "Address copied"
-													: "Copy wallet address"
-										}
-										title={
-											copyError
-												? copyError
-												: copied
-													? "Copied!"
-													: "Copy address"
-										}
-										disabled={!!copyError}
-									>
-										{copyError ? (
-											<AlertCircle
-												className="h-4 w-4 text-red-500"
-												aria-hidden="true"
-											/>
-										) : copied ? (
-											<Check
-												className="h-4 w-4 text-green-500"
-												aria-hidden="true"
-											/>
-										) : (
-											<Copy className="h-4 w-4" aria-hidden="true" />
-										)}
-									</Button>
-								</div>
-								{copyError && (
-									<p
-										role="alert"
-										className="text-xs text-red-600 dark:text-red-400"
-									>
-										{copyError}
-									</p>
-								)}
+							<dd className="flex min-w-0 items-center gap-2">
+								<code className="min-w-0 truncate rounded bg-zinc-100 px-2 py-1 font-mono text-sm text-zinc-700 sm:max-w-[200px] dark:bg-zinc-800 dark:text-zinc-300">
+									{truncateAddress(wallet.address)}
+								</code>
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									onClick={() => copy(wallet.address)}
+									aria-label={copied ? "Address copied" : "Copy wallet address"}
+									title={copied ? "Copied!" : "Copy address"}
+								>
+									{copied ? (
+										<Check className="h-4 w-4 text-green-500" aria-hidden="true" />
+									) : (
+										<Copy className="h-4 w-4" aria-hidden="true" />
+									)}
+								</Button>
 							</dd>
 						</div>
-						<div className="flex items-center justify-between">
+						<div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
 							<dt className="text-sm text-zinc-500 dark:text-zinc-400">
 								Network
 							</dt>
@@ -139,7 +151,7 @@ export function WalletDetail({ id }: WalletDetailProps) {
 								<NetworkBadge network={wallet.network} />
 							</dd>
 						</div>
-						<div className="flex items-center justify-between">
+						<div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
 							<dt className="text-sm text-zinc-500 dark:text-zinc-400">
 								Status
 							</dt>
@@ -147,7 +159,7 @@ export function WalletDetail({ id }: WalletDetailProps) {
 								<StatusIndicator status={wallet.status} />
 							</dd>
 						</div>
-						<div className="flex items-center justify-between">
+						<div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
 							<dt className="text-sm text-zinc-500 dark:text-zinc-400">
 								Created
 							</dt>
@@ -156,7 +168,7 @@ export function WalletDetail({ id }: WalletDetailProps) {
 							</dd>
 						</div>
 						{wallet.lastActivity && (
-							<div className="flex items-center justify-between">
+							<div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
 								<dt className="text-sm text-zinc-500 dark:text-zinc-400">
 									Last Activity
 								</dt>
@@ -166,9 +178,9 @@ export function WalletDetail({ id }: WalletDetailProps) {
 							</div>
 						)}
 					</dl>
-				</div>
+				</section>
 			) : (
-				<div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+				<div className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
 					<Skeleton className="mb-4 h-4 w-24" />
 					<div className="space-y-4">
 						{[...Array(4)].map((_, i) => (
