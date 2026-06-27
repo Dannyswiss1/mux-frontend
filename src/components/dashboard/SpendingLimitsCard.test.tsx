@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SpendingLimitsCard } from "./SpendingLimitsCard";
 
 describe("SpendingLimitsCard", () => {
@@ -274,5 +274,49 @@ describe("SpendingLimitsCard loading state", () => {
 		expect(
 			screen.getByRole("heading", { name: /spending limits/i }),
 		).toBeInTheDocument();
+	});
+});
+
+describe("SpendingLimitsCard toast feedback", () => {
+	beforeEach(() => {
+		vi.stubGlobal("localStorage", {
+			getItem: vi.fn().mockReturnValue(null),
+			setItem: vi.fn(),
+		});
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("shows success toast after saving valid settings", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		await user.click(screen.getByRole("button", { name: /save settings/i }));
+
+		expect(screen.getByRole("status")).toBeInTheDocument();
+		expect(screen.getByText("Success")).toBeInTheDocument();
+		expect(screen.getByText(/spending limits saved/i)).toBeInTheDocument();
+	});
+
+	it("shows error toast when localStorage throws", async () => {
+		vi.mocked(localStorage.setItem).mockImplementation(() => {
+			throw new Error("QuotaExceededError");
+		});
+
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		await user.click(screen.getByRole("button", { name: /save settings/i }));
+
+		expect(screen.getByRole("status")).toBeInTheDocument();
+		expect(screen.getByText("Error")).toBeInTheDocument();
+		expect(screen.getByText(/failed to save/i)).toBeInTheDocument();
+	});
+
+	it("toast is not visible before saving", () => {
+		render(<SpendingLimitsCard />);
+		expect(screen.queryByRole("status")).not.toBeInTheDocument();
 	});
 });

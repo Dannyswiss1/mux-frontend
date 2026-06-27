@@ -2,24 +2,12 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, Suspense, useEffect, useState } from "react";
+import { AuthLoadingSkeleton } from "@/components/layouts/AuthLoadingSkeleton";
 import { useAuth } from "@/context/AuthContext";
 
-/**
- * LoginPage — scaffold for the Mux Protocol authentication flow (issue #47).
- *
- * Responsibilities:
- * - Render a login form (email + password fields)
- * - On submit, call `signIn` from AuthContext with the resolved user record
- * - Redirect to `callbackUrl` (or `/dashboard`) after a successful sign-in
- * - Redirect already-authenticated users away from this page immediately
- * - Show inline validation and error feedback
- * - Handle the loading state while auth is being rehydrated
- *
- * NOTE: This is a scaffold. The `authenticateUser` helper below is a
- * placeholder that accepts any non-empty credentials and returns a mock
- * user. Replace it with a real API call when the backend auth endpoint
- * is available (see docs/auth-local-setup.md).
- */
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface LoginFormState {
 	email: string;
@@ -31,27 +19,41 @@ interface FieldErrors {
 	password?: string;
 }
 
-/**
- * Placeholder authentication function.
- * Replace with a real API call (e.g. POST /api/auth/login) once the
- * backend endpoint is available.
- */
+// ---------------------------------------------------------------------------
+// API call — #325: wire to backend via POST /api/auth/login
+// ---------------------------------------------------------------------------
+
 async function authenticateUser(
 	email: string,
-	_password: string,
+	password: string,
 ): Promise<{ name: string; email: string; role: string }> {
-	// Simulate network latency
-	await new Promise((resolve) => setTimeout(resolve, 400));
+	const res = await fetch("/api/auth/login", {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify({ email, password }),
+	});
 
-	// Derive a display name from the email prefix
-	const namePart = email.split("@")[0] ?? "User";
-	const name = namePart
-		.split(/[._-]/)
-		.map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-		.join(" ");
+	const data = await res.json().catch(() => ({}));
 
-	return { name, email, role: "developer" };
+	if (!res.ok) {
+		throw new Error(
+			(data as { error?: string }).error ||
+				"Sign in failed. Please check your credentials and try again.",
+		);
+	}
+
+	const user = (data as { user?: { name: string; email: string; role: string } })
+		.user;
+	if (!user) {
+		throw new Error("Unexpected response from authentication server.");
+	}
+
+	return user;
 }
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
 
 function validate(fields: LoginFormState): FieldErrors {
 	const errors: FieldErrors = {};
@@ -68,6 +70,85 @@ function validate(fields: LoginFormState): FieldErrors {
 	return errors;
 }
 
+// ---------------------------------------------------------------------------
+// #327: Styled error card component
+// ---------------------------------------------------------------------------
+
+function LoginErrorCard({
+	message,
+	onDismiss,
+}: {
+	message: string;
+	onDismiss: () => void;
+}) {
+	return (
+		<div
+			role="alert"
+			className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+			data-testid="login-error"
+		>
+			<svg
+				className="mt-0.5 h-4 w-4 shrink-0 text-red-500"
+				fill="none"
+				viewBox="0 0 24 24"
+				strokeWidth={2}
+				stroke="currentColor"
+				aria-hidden="true"
+			>
+				<path
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+				/>
+			</svg>
+			<span className="flex-1">{message}</span>
+			<button
+				type="button"
+				onClick={onDismiss}
+				aria-label="Dismiss error"
+				className="text-red-400 hover:text-red-600"
+			>
+				<svg
+					className="h-4 w-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					strokeWidth={2}
+					stroke="currentColor"
+					aria-hidden="true"
+				>
+					<path
+						strokeLinecap="round"
+						strokeLinejoin="round"
+						d="M6 18L18 6M6 6l12 12"
+					/>
+				</svg>
+			</button>
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
+// #326: Empty/welcome state shown before the user starts typing
+// ---------------------------------------------------------------------------
+
+function LoginWelcomeHint() {
+	return (
+		<div
+			className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700"
+			data-testid="login-empty-state"
+		>
+			<p className="font-medium">Welcome to Mux Protocol</p>
+			<p className="mt-0.5 text-blue-600">
+				Enter your credentials to access your developer console.
+			</p>
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Page content
+// ---------------------------------------------------------------------------
+
 function LoginPageContent() {
 	const { isAuthenticated, isLoading, signIn } = useAuth();
 	const router = useRouter();
@@ -83,6 +164,9 @@ function LoginPageContent() {
 
 	const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
 
+	// Derived: true when the user hasn't interacted with the form yet (#326)
+	const isPristine = !fields.email && !fields.password;
+
 	// Redirect already-authenticated users away from the login page
 	useEffect(() => {
 		if (!isLoading && isAuthenticated) {
@@ -93,7 +177,6 @@ function LoginPageContent() {
 	function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
 		const { name, value } = e.target;
 		setFields((prev) => ({ ...prev, [name]: value }));
-		// Clear the field error as the user types
 		if (fieldErrors[name as keyof FieldErrors]) {
 			setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
 		}
@@ -115,28 +198,21 @@ function LoginPageContent() {
 			const user = await authenticateUser(fields.email, fields.password);
 			signIn(user);
 			router.replace(callbackUrl);
-		} catch {
+		} catch (err) {
 			setSubmitError(
-				"Sign in failed. Please check your credentials and try again.",
+				err instanceof Error
+					? err.message
+					: "Sign in failed. Please check your credentials and try again.",
 			);
 		} finally {
 			setIsSubmitting(false);
 		}
 	}
 
-	// While auth state is being rehydrated, show a minimal loading indicator
-	// so the page doesn't flash the form for already-authenticated users.
+	// #328: While auth state is being rehydrated, show the AuthLoadingSkeleton
+	// instead of a bare spinner so the page does not flash.
 	if (isLoading) {
-		return (
-			<div
-				className="flex min-h-screen items-center justify-center bg-gray-50"
-				aria-busy="true"
-				aria-label="Loading"
-				data-testid="login-loading"
-			>
-				<div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-			</div>
-		);
+		return <AuthLoadingSkeleton />;
 	}
 
 	return (
@@ -172,15 +248,15 @@ function LoginPageContent() {
 				<div className="rounded-2xl border border-gray-200 bg-white px-8 py-10 shadow-sm">
 					<h2 className="mb-6 text-lg font-semibold text-gray-900">Sign in</h2>
 
-					{/* Global submit error */}
+					{/* #326: Empty/welcome state — shown before the user types anything */}
+					{isPristine && !submitError && <LoginWelcomeHint />}
+
+					{/* #327: Styled error card for submit errors */}
 					{submitError && (
-						<div
-							role="alert"
-							className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-							data-testid="login-error"
-						>
-							{submitError}
-						</div>
+						<LoginErrorCard
+							message={submitError}
+							onDismiss={() => setSubmitError(null)}
+						/>
 					)}
 
 					<form
@@ -326,17 +402,7 @@ function LoginPageContent() {
 
 export default function LoginPage() {
 	return (
-		<Suspense
-			fallback={
-				<div
-					className="flex min-h-screen items-center justify-center bg-gray-50"
-					aria-busy="true"
-					aria-label="Loading"
-				>
-					<div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-				</div>
-			}
-		>
+		<Suspense fallback={<AuthLoadingSkeleton />}>
 			<LoginPageContent />
 		</Suspense>
 	);

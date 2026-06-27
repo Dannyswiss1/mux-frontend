@@ -56,12 +56,10 @@ describe("RecoveryPage", () => {
 		useRecoveryMock.mockReturnValue(makeRecovery({ state: "loading" }));
 		render(<RecoveryPage />);
 
-		// RecoveryLoadingState exposes role=status with its loading label.
 		expect(
 			screen.getByRole("status", { name: /loading recovery status/i }),
 		).toBeInTheDocument();
 
-		// Body content for non-loading states must not be present.
 		expect(
 			screen.queryByText(/recovery system status/i),
 		).not.toBeInTheDocument();
@@ -106,12 +104,38 @@ describe("RecoveryPage", () => {
 	});
 
 	it("passes the recovery object through to the InitiateRecoveryCTA", () => {
-		// We don't need to inspect the CTA itself (it has its own test);
-		// we just verify that the hook is invoked exactly once per render
-		// and the same object would be threaded through.
 		useRecoveryMock.mockReturnValue(makeRecovery({ state: "idle" }));
 		render(<RecoveryPage />);
 
 		expect(useRecoveryMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("shows a success toast when recovery state is 'success'", () => {
+		useRecoveryMock.mockReturnValue(makeRecovery({ state: "success" }));
+		render(<RecoveryPage />);
+
+		expect(
+			screen.getByText("Recovery request submitted successfully."),
+		).toBeInTheDocument();
+		expect(screen.getByText("Success")).toBeInTheDocument();
+	});
+
+	it("shows an error toast when recovery state is 'error' with an error message", () => {
+		useRecoveryMock.mockReturnValue(
+			makeRecovery({ state: "error", errorMessage: "Network failure" }),
+		);
+		render(<RecoveryPage />);
+
+		// "Network failure" appears in both the CTA alert and the toast
+		expect(screen.getAllByText("Network failure").length).toBeGreaterThanOrEqual(2);
+		expect(screen.getByText("Error")).toBeInTheDocument();
+	});
+
+	it("does not show a toast when recovery state is 'idle'", () => {
+		useRecoveryMock.mockReturnValue(makeRecovery({ state: "idle" }));
+		render(<RecoveryPage />);
+
+		expect(screen.queryByText("Success")).not.toBeInTheDocument();
+		expect(screen.queryByText("Error")).not.toBeInTheDocument();
 	});
 });

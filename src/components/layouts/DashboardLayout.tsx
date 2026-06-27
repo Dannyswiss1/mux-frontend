@@ -84,7 +84,7 @@ function DashboardLayoutShell({ children }: DashboardLayoutProps) {
 	return (
 		<NetworkProvider>
 			<div
-				className="relative flex min-h-screen bg-gray-50"
+				className="relative flex min-h-screen bg-gray-50 dark:bg-zinc-950"
 				onKeyDown={handleKeyDown}
 				onTouchStart={handleTouchStart}
 				onTouchEnd={handleTouchEnd}
