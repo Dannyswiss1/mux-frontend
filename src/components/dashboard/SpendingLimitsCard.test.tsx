@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SpendingLimitsCard } from "./SpendingLimitsCard";
 
 describe("SpendingLimitsCard", () => {
@@ -208,5 +209,76 @@ describe("SpendingLimitsCard loading state", () => {
 		expect(
 			screen.getByRole("heading", { name: /spending limits/i }),
 		).toBeInTheDocument();
+	});
+});
+
+describe("SpendingLimitsCard copy-to-clipboard", () => {
+	let clipboardSpy: ReturnType<typeof vi.spyOn>;
+
+	beforeEach(() => {
+		clipboardSpy = vi
+			.spyOn(navigator.clipboard, "writeText")
+			.mockResolvedValue(undefined);
+	});
+
+	afterEach(() => {
+		clipboardSpy.mockRestore();
+	});
+
+	it("renders copy buttons for both limit fields", () => {
+		render(<SpendingLimitsCard />);
+
+		expect(
+			screen.getByRole("button", { name: /copy daily limit/i }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: /copy transaction limit/i }),
+		).toBeInTheDocument();
+	});
+
+	it("copies the daily limit value to clipboard on click", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		await user.click(screen.getByRole("button", { name: /copy daily limit/i }));
+
+		expect(clipboardSpy).toHaveBeenCalledWith("5000");
+	});
+
+	it("copies the transaction limit value to clipboard on click", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		await user.click(
+			screen.getByRole("button", { name: /copy transaction limit/i }),
+		);
+
+		expect(clipboardSpy).toHaveBeenCalledWith("1000");
+	});
+
+	it("shows 'Copied' label after clicking copy", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		await user.click(screen.getByRole("button", { name: /copy daily limit/i }));
+
+		expect(
+			screen.getByRole("button", { name: /daily limit copied/i }),
+		).toBeInTheDocument();
+	});
+
+	it("copies the updated value after input changes", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		const dailyInput = screen.getByRole("spinbutton", {
+			name: /daily spending limit/i,
+		});
+		await user.clear(dailyInput);
+		await user.type(dailyInput, "9999");
+
+		await user.click(screen.getByRole("button", { name: /copy daily limit/i }));
+
+		expect(clipboardSpy).toHaveBeenCalledWith("9999");
 	});
 });

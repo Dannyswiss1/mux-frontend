@@ -1,7 +1,14 @@
 "use client";
 
-import { AlertCircle, DollarSign, TrendingUp, Wallet } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+	AlertCircle,
+	Check,
+	Clipboard,
+	DollarSign,
+	TrendingUp,
+	Wallet,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -10,6 +17,7 @@ import { Toast } from "@/components/ui/toast";
 const STORAGE_KEY = "spending-limits";
 const MIN_LIMIT = 1;
 const MAX_LIMIT = 1000000;
+const COPY_RESET_MS = 2000;
 
 function parseLimit(value: string) {
 	const number = Number(value);
@@ -19,6 +27,48 @@ function parseLimit(value: string) {
 function safeSaveValue(value: string) {
 	const parsed = parseLimit(value);
 	return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/** Small copy-button that shows a checkmark for COPY_RESET_MS after clicking. */
+function CopyButton({
+	value,
+	label,
+}: { value: string; label: string }) {
+	const [copied, setCopied] = useState(false);
+	const timerRef = useRef<number | null>(null);
+
+	const handleCopy = useCallback(async () => {
+		try {
+			await navigator.clipboard.writeText(value);
+			setCopied(true);
+			if (timerRef.current) window.clearTimeout(timerRef.current);
+			timerRef.current = window.setTimeout(() => setCopied(false), COPY_RESET_MS);
+		} catch {
+			// clipboard unavailable – silently ignore
+		}
+	}, [value]);
+
+	useEffect(() => {
+		return () => {
+			if (timerRef.current) window.clearTimeout(timerRef.current);
+		};
+	}, []);
+
+	return (
+		<button
+			type="button"
+			onClick={handleCopy}
+			aria-label={copied ? `${label} copied` : `Copy ${label}`}
+			className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-zinc-400 transition-colors hover:text-zinc-700 dark:hover:text-zinc-200"
+		>
+			{copied ? (
+				<Check className="size-3 text-green-500" />
+			) : (
+				<Clipboard className="size-3" />
+			)}
+			<span>{copied ? "Copied" : "Copy"}</span>
+		</button>
+	);
 }
 
 interface SpendingLimitsCardProps {
@@ -146,13 +196,16 @@ export function SpendingLimitsCard({
 
 					<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 						<div className="space-y-2">
-							<label
-								htmlFor="daily-limit"
-								className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
-							>
-								<DollarSign className="size-4" />
-								Daily Spending Limit
-							</label>
+							<div className="flex items-center justify-between">
+								<label
+									htmlFor="daily-limit"
+									className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
+								>
+									<DollarSign className="size-4" />
+									Daily Spending Limit
+								</label>
+								<CopyButton value={dailyLimit} label="daily limit" />
+							</div>
 							<div className="relative">
 								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
 									$
@@ -175,13 +228,16 @@ export function SpendingLimitsCard({
 						</div>
 
 						<div className="space-y-2">
-							<label
-								htmlFor="tx-limit"
-								className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
-							>
-								<Wallet className="size-4" />
-								Per-Transaction Limit
-							</label>
+							<div className="flex items-center justify-between">
+								<label
+									htmlFor="tx-limit"
+									className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
+								>
+									<Wallet className="size-4" />
+									Per-Transaction Limit
+								</label>
+								<CopyButton value={transactionLimit} label="transaction limit" />
+							</div>
 							<div className="relative">
 								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
 									$
