@@ -1,61 +1,74 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SpendingLimitsCard } from "./SpendingLimitsCard";
 
 describe("SpendingLimitsCard", () => {
-	it("renders the card title and description", () => {
+	it("renders the card title and description", async () => {
 		render(<SpendingLimitsCard />);
-
-		expect(
-			screen.getByRole("heading", { name: /spending limits/i }),
-		).toBeInTheDocument();
-		expect(
-			screen.getByText(/control your api expenditure/i),
-		).toBeInTheDocument();
-	});
-
-	it("renders the Active badge", () => {
-		render(<SpendingLimitsCard />);
-
-		expect(screen.getByText("Active")).toBeInTheDocument();
-	});
-
-	it("renders the daily usage section with default values", () => {
-		render(<SpendingLimitsCard />);
-
-		expect(screen.getByText("$750")).toBeInTheDocument();
-		expect(screen.getByText("/ $5000")).toBeInTheDocument();
-		expect(screen.getByText("15.0%")).toBeInTheDocument();
-	});
-
-	it("renders both input fields with default values", () => {
-		render(<SpendingLimitsCard />);
-
-		const dailyInput = screen.getByRole("spinbutton", {
-			name: /daily spending limit/i,
+		await waitFor(() => {
+			expect(
+				screen.getByRole("heading", { name: /spending limits/i }),
+			).toBeInTheDocument();
 		});
-		const txInput = screen.getByRole("spinbutton", {
-			name: /per-transaction limit/i,
+		await waitFor(() => {
+			expect(
+				screen.getByText(/control your api expenditure/i),
+			).toBeInTheDocument();
 		});
-
-		expect(dailyInput).toHaveValue(5000);
-		expect(txInput).toHaveValue(1000);
 	});
 
-	it("renders the Save Settings button", () => {
+	it("renders the Active badge", async () => {
 		render(<SpendingLimitsCard />);
-
-		expect(
-			screen.getByRole("button", { name: /save settings/i }),
-		).toBeInTheDocument();
+		await waitFor(() => {
+			expect(screen.getByText("Active")).toBeInTheDocument();
+		});
 	});
 
-	it("renders the policy note", () => {
+	it("renders the daily usage section with default values", async () => {
 		render(<SpendingLimitsCard />);
+		await waitFor(() => {
+			expect(screen.getByText("$750")).toBeInTheDocument();
+		});
+		await waitFor(() => {
+			expect(screen.getByText("/ $5000")).toBeInTheDocument();
+		});
+		await waitFor(() => {
+			expect(screen.getByText("15.0%")).toBeInTheDocument();
+		});
+	});
 
-		expect(
-			screen.getByText(/spending limits are enforced in real-time/i),
-		).toBeInTheDocument();
+	it("renders both input fields with default values", async () => {
+		render(<SpendingLimitsCard />);
+		await waitFor(() => {
+			const dailyInput = screen.getByRole("spinbutton", {
+				name: /daily spending limit/i,
+			});
+			expect(dailyInput).toHaveValue(5000);
+		});
+		await waitFor(() => {
+			const txInput = screen.getByRole("spinbutton", {
+				name: /per-transaction limit/i,
+			});
+			expect(txInput).toHaveValue(1000);
+		});
+	});
+
+	it("renders the Save Settings button", async () => {
+		render(<SpendingLimitsCard />);
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", { name: /save settings/i }),
+			).toBeInTheDocument();
+		});
+	});
+
+	it("renders the policy note", async () => {
+		render(<SpendingLimitsCard />);
+		await waitFor(() => {
+			expect(
+				screen.getByText(/spending limits are enforced in real-time/i),
+			).toBeInTheDocument();
+		});
 	});
 
 	it("updates daily limit when input changes", async () => {
@@ -149,22 +162,28 @@ describe("SpendingLimitsCard", () => {
 		expect(screen.getByText("15.0%")).toBeInTheDocument();
 	});
 
-	it("has proper accessibility: inputs are associated with labels", () => {
+	it("has proper accessibility: inputs are associated with labels", async () => {
 		render(<SpendingLimitsCard />);
-
-		expect(screen.getByLabelText(/daily spending limit/i)).toBeInTheDocument();
-		expect(screen.getByLabelText(/per-transaction limit/i)).toBeInTheDocument();
+		await waitFor(() => {
+			expect(screen.getByLabelText(/daily spending limit/i)).toBeInTheDocument();
+		});
+		await waitFor(() => {
+			expect(screen.getByLabelText(/per-transaction limit/i)).toBeInTheDocument();
+		});
 	});
 
-	it("renders helper text under each input", () => {
+	it("renders helper text under each input", async () => {
 		render(<SpendingLimitsCard />);
-
-		expect(
-			screen.getByText(/maximum amount you can spend per day/i),
-		).toBeInTheDocument();
-		expect(
-			screen.getByText(/maximum cap for a single transaction/i),
-		).toBeInTheDocument();
+		await waitFor(() => {
+			expect(
+				screen.getByText(/maximum amount you can spend per day/i),
+			).toBeInTheDocument();
+		});
+		await waitFor(() => {
+			expect(
+				screen.getByText(/maximum cap for a single transaction/i),
+			).toBeInTheDocument();
+		});
 	});
 });
 
@@ -191,22 +210,26 @@ describe("SpendingLimitsCard loading state", () => {
 		expect(screen.queryByText("Active")).not.toBeInTheDocument();
 	});
 
-	it("renders real content when loading is false", () => {
+	it("renders real content when loading is false", async () => {
 		render(<SpendingLimitsCard loading={false} />);
-
-		expect(
-			screen.getByRole("heading", { name: /spending limits/i }),
-		).toBeInTheDocument();
-		expect(
-			screen.getByRole("button", { name: /save settings/i }),
-		).toBeInTheDocument();
+		await waitFor(() => {
+			expect(
+				screen.getByRole("heading", { name: /spending limits/i }),
+			).toBeInTheDocument();
+		});
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", { name: /save settings/i }),
+			).toBeInTheDocument();
+		});
 	});
 
-	it("renders real content by default (loading not set)", () => {
+	it("renders real content by default (loading not set)", async () => {
 		render(<SpendingLimitsCard />);
-
-		expect(
-			screen.getByRole("heading", { name: /spending limits/i }),
-		).toBeInTheDocument();
+		await waitFor(() => {
+			expect(
+				screen.getByRole("heading", { name: /spending limits/i }),
+			).toBeInTheDocument();
+		});
 	});
 });

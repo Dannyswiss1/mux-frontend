@@ -1,11 +1,12 @@
 "use client";
 
 import { AlertCircle, DollarSign, TrendingUp, Wallet } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Toast } from "@/components/ui/toast";
+import type { SpendingLimitsResponse } from "@/app/api/spending-limits/route";
 
 const STORAGE_KEY = "spending-limits";
 const MIN_LIMIT = 1;
@@ -30,43 +31,68 @@ export function SpendingLimitsCard({
 }: SpendingLimitsCardProps) {
 	const [dailyLimit, setDailyLimit] = useState("5000");
 	const [transactionLimit, setTransactionLimit] = useState("1000");
+	const [todayUsage, setTodayUsage] = useState(750);
 	const [toastOpen, setToastOpen] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [saveInProgress, setSaveInProgress] = useState(false);
 
 	const toastTimeoutRef = useRef<number | null>(null);
 
+	// Fetch limits from API on mount
 	useEffect(() => {
-		try {
-			const stored = window.localStorage.getItem(STORAGE_KEY);
-			if (!stored) {
-				return;
-			}
+		let cancelled = false;
 
-			const parsed = JSON.parse(stored);
-			if (
-				typeof parsed?.dailyLimit === "number" &&
-				isFinite(parsed.dailyLimit)
-			) {
-				setDailyLimit(String(parsed.dailyLimit));
-			}
+		async function loadLimits() {
+			try {
+				const res = await fetch("/api/spending-limits");
+				if (!res.ok) throw new Error(`HTTP ${res.status}`);
+				const data: SpendingLimitsResponse = await res.json();
+				if (cancelled) return;
 
-			if (
-				typeof parsed?.transactionLimit === "number" &&
-				isFinite(parsed.transactionLimit)
-			) {
-				setTransactionLimit(String(parsed.transactionLimit));
+				setDailyLimit(String(data.limits.dailyLimit));
+				setTransactionLimit(String(data.limits.transactionLimit));
+				setTodayUsage(data.todayUsage);
+				setError(null);
+			} catch (err) {
+				if (cancelled) return;
+				// Fall back to localStorage if API is unreachable
+				try {
+					const stored = window.localStorage.getItem(STORAGE_KEY);
+					if (stored) {
+						const parsed = JSON.parse(stored);
+						if (
+							typeof parsed?.dailyLimit === "number" &&
+							isFinite(parsed.dailyLimit)
+						) {
+							setDailyLimit(String(parsed.dailyLimit));
+						}
+						if (
+							typeof parsed?.transactionLimit === "number" &&
+							isFinite(parsed.transactionLimit)
+						) {
+							setTransactionLimit(String(parsed.transactionLimit));
+						}
+					}
+				} catch {
+					// Ignore localStorage errors
+				}
+				setError(
+					err instanceof Error ? err.message : "Failed to load spending limits",
+				);
 			}
-		} catch {
-			// Ignore invalid stored data and continue with defaults.
 		}
 
+		loadLimits();
+
 		return () => {
+			cancelled = true;
 			if (toastTimeoutRef.current) {
 				window.clearTimeout(toastTimeoutRef.current);
 			}
 		};
 	}, []);
 
-	const usedAmount = 750;
+	const usedAmount = todayUsage;
 	const totalLimit = Number.parseInt(dailyLimit) || 1;
 	const usagePercentage = Math.min((usedAmount / totalLimit) * 100, 100);
 
@@ -74,23 +100,58 @@ export function SpendingLimitsCard({
 		return <SpendingLimitsCardSkeleton />;
 	}
 
-	const handleSave = () => {
+	const handleSave = async () => {
+		setSaveInProgress(true);
+		setError(null);
+
+		const dailyNum = safeSaveValue(dailyLimit);
+		const txNum = safeSaveValue(transactionLimit);
+
+		// Optimistically save to localStorage as fallback
 		window.localStorage.setItem(
 			STORAGE_KEY,
 			JSON.stringify({
-				dailyLimit: safeSaveValue(dailyLimit),
-				transactionLimit: safeSaveValue(transactionLimit),
+				dailyLimit: dailyNum,
+				transactionLimit: txNum,
 			}),
 		);
 
-		setToastOpen(true);
-		if (toastTimeoutRef.current) {
-			window.clearTimeout(toastTimeoutRef.current);
-		}
+		try {
+			const res = await fetch("/api/spending-limits", {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					dailyLimit: dailyNum,
+					transactionLimit: txNum,
+				}),
+			});
 
-		toastTimeoutRef.current = window.setTimeout(() => {
-			setToastOpen(false);
-		}, 3000);
+			if (!res.ok) {
+				const errBody = await res.json().catch(() => ({}));
+				throw new Error(
+					(errBody as { error?: string }).error ?? "Failed to save limits",
+				);
+			}
+
+			const data: SpendingLimitsResponse = await res.json();
+			setDailyLimit(String(data.limits.dailyLimit));
+			setTransactionLimit(String(data.limits.transactionLimit));
+			setTodayUsage(data.todayUsage);
+			setError(null);
+		} catch (err) {
+			setError(
+				err instanceof Error ? err.message : "Failed to save spending limits",
+			);
+		} finally {
+			setSaveInProgress(false);
+			setToastOpen(true);
+			if (toastTimeoutRef.current) {
+				window.clearTimeout(toastTimeoutRef.current);
+			}
+			toastTimeoutRef.current = window.setTimeout(() => {
+				setToastOpen(false);
+			}, 3000);
+		}
 	};
 
 	return (
@@ -215,13 +276,22 @@ export function SpendingLimitsCard({
 					</div>
 				</div>
 
-				<div className="flex justify-end bg-zinc-50 px-6 py-4 dark:bg-zinc-900/50">
-					<Button className="rounded-full px-6" onClick={handleSave}>
-						Save Settings
+				<div className="flex flex-col sm:flex-row items-end justify-between gap-3 bg-zinc-50 px-6 py-4 dark:bg-zinc-900/50">
+					{error && (
+						<p className="text-xs text-red-600 leading-relaxed">
+							{error}
+						</p>
+					)}
+					<Button
+						className="rounded-full px-6 shrink-0"
+						onClick={handleSave}
+						disabled={saveInProgress}
+					>
+						{saveInProgress ? "Saving…" : "Save Settings"}
 					</Button>
 				</div>
 			</div>
-			<Toast open={toastOpen} message="Spending limits saved." />
+			<Toast open={toastOpen} message={error ? `Error: ${error}` : "Spending limits saved."} />
 		</>
 	);
 }
