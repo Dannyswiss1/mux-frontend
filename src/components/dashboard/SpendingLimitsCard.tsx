@@ -1,15 +1,36 @@
 "use client";
 
-import { AlertCircle, DollarSign, TrendingUp, Wallet } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+	AlertCircle,
+	Check,
+	Clipboard,
+	DollarSign,
+	TrendingUp,
+	Wallet,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Toast } from "@/components/ui/toast";
+import type { SpendingLimitsResponse } from "@/app/api/spending-limits/route";
+
+// Allow pressing Enter in an input to trigger save, Escape to blur.
+function useInputKeyNav(onSave: () => void) {
+	return (e: React.KeyboardEvent<HTMLInputElement>) => {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			onSave();
+		} else if (e.key === "Escape") {
+			e.currentTarget.blur();
+		}
+	};
+}
 
 const STORAGE_KEY = "spending-limits";
 const MIN_LIMIT = 1;
 const MAX_LIMIT = 1000000;
+const COPY_RESET_MS = 2000;
 
 function parseLimit(value: string) {
 	const number = Number(value);
@@ -48,6 +69,7 @@ export function SpendingLimitsCard({
 
 	const toastTimeoutRef = useRef<number | null>(null);
 
+	// Fetch limits from API on mount
 	useEffect(() => {
 		try {
 			const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -59,15 +81,13 @@ export function SpendingLimitsCard({
 			if (typeof parsed?.transactionLimit === "number" && isFinite(parsed.transactionLimit)) {
 				setTransactionLimit(String(parsed.transactionLimit));
 			}
-		} catch {
-			// Ignore invalid stored data and continue with defaults.
 		}
 		return () => {
 			if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
 		};
 	}, []);
 
-	const usedAmount = 750;
+	const usedAmount = todayUsage;
 	const totalLimit = Number.parseInt(dailyLimit) || 1;
 	const usagePercentage = Math.min((usedAmount / totalLimit) * 100, 100);
 
@@ -95,6 +115,8 @@ export function SpendingLimitsCard({
 			showToast("error", "Failed to save. Please try again.");
 		}
 	};
+
+	const handleInputKeyDown = useInputKeyNav(handleSave);
 
 	return (
 		<>
@@ -149,13 +171,16 @@ export function SpendingLimitsCard({
 
 					<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 						<div className="space-y-2">
-							<label
-								htmlFor="daily-limit"
-								className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
-							>
-								<DollarSign className="size-4" />
-								Daily Spending Limit
-							</label>
+							<div className="flex items-center justify-between">
+								<label
+									htmlFor="daily-limit"
+									className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
+								>
+									<DollarSign className="size-4" />
+									Daily Spending Limit
+								</label>
+								<CopyButton value={dailyLimit} label="daily limit" />
+							</div>
 							<div className="relative">
 								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
 									$
@@ -188,13 +213,16 @@ export function SpendingLimitsCard({
 						</div>
 
 						<div className="space-y-2">
-							<label
-								htmlFor="tx-limit"
-								className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
-							>
-								<Wallet className="size-4" />
-								Per-Transaction Limit
-							</label>
+							<div className="flex items-center justify-between">
+								<label
+									htmlFor="tx-limit"
+									className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300"
+								>
+									<Wallet className="size-4" />
+									Per-Transaction Limit
+								</label>
+								<CopyButton value={transactionLimit} label="transaction limit" />
+							</div>
 							<div className="relative">
 								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
 									$
@@ -230,17 +258,26 @@ export function SpendingLimitsCard({
 					<div className="flex gap-3 rounded-lg border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-500/10 dark:bg-blue-500/5">
 						<AlertCircle className="size-5 shrink-0 text-blue-600 dark:text-blue-400" />
 						<p className="text-xs leading-relaxed text-blue-800 dark:text-blue-300">
-							Spending limits are enforced in real-time. If a transaction exceeds
-							your per-transaction limit or if your daily limit is reached,
-							subsequent API calls will be restricted until limits are increased
-							or the period resets.
+							Spending limits are enforced in real-time. If a transaction
+							exceeds your per-transaction limit or if your daily limit is
+							reached, subsequent API calls will be restricted until limits are
+							increased or the period resets.
 						</p>
 					</div>
 				</div>
 
-				<div className="flex justify-end bg-zinc-50 px-6 py-4 dark:bg-zinc-900/50">
-					<Button className="rounded-full px-6" onClick={handleSave}>
-						Save Settings
+				<div className="flex flex-col sm:flex-row items-end justify-between gap-3 bg-zinc-50 px-6 py-4 dark:bg-zinc-900/50">
+					{error && (
+						<p className="text-xs text-red-600 leading-relaxed">
+							{error}
+						</p>
+					)}
+					<Button
+						className="rounded-full px-6 shrink-0"
+						onClick={handleSave}
+						disabled={saveInProgress}
+					>
+						{saveInProgress ? "Saving…" : "Save Settings"}
 					</Button>
 				</div>
 			</div>

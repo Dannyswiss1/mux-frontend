@@ -10,15 +10,14 @@ import {
 	Search,
 	X,
 } from "lucide-react";
-import React, { useMemo, useState } from "react";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { mockTransactions } from "@/mock-data/transactions";
 import type {
 	Transaction,
 	TransactionNetwork,
 	TransactionStatus,
 } from "@/types/transaction";
+import { trackTransactionEvent } from "@/services/analyticsTracking";
 
 // --- Helpers ---
 
@@ -82,112 +81,38 @@ const NetworkBadge = ({ network }: { network: TransactionNetwork }) => {
 	);
 };
 
-/** Inline copy button that shows a check on success */
-function CopyButton({ text, label }: { text: string; label: string }) {
-	const { copy, copied } = useCopyToClipboard();
-	return (
-		<button
-			type="button"
-			onClick={(e) => {
-				e.stopPropagation();
-				copy(text, text);
-			}}
-			aria-label={copied ? "Copied!" : label}
-			title={copied ? "Copied!" : label}
-			className="ml-1 inline-flex shrink-0 items-center justify-center rounded p-0.5 text-slate-400 opacity-0 transition-opacity hover:text-slate-600 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-		>
-			{copied ? <Check size={12} aria-hidden /> : <Copy size={12} aria-hidden />}
-		</button>
-	);
-}
+// --- Props ---
 
-/** Skeleton for the transactions table while loading */
-function TransactionsTableSkeleton({ rows = 5 }: { rows?: number }) {
-	return (
-		<div
-			className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"
-			role="status"
-			aria-label="Loading transactions"
-			aria-busy="true"
-			aria-live="polite"
-		>
-			{/* Desktop header skeleton */}
-			<div className="hidden lg:grid grid-cols-12 gap-2 p-4 border-b border-slate-100 bg-slate-50/50">
-				{[3, 2, 2, 2, 1, 1, 1].map((span, i) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
-					<div key={i} className={`col-span-${span}`}>
-						<Skeleton className="h-3 w-16" />
-					</div>
-				))}
-			</div>
-
-			{/* Skeleton rows */}
-			<div className="divide-y divide-slate-100">
-				{Array.from({ length: rows }).map((_, i) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
-					<div key={i} className="p-4">
-						{/* Desktop row */}
-						<div className="hidden lg:grid grid-cols-12 gap-2 items-center">
-							<div className="col-span-3 space-y-1">
-								<Skeleton className="h-4 w-32" />
-								<Skeleton className="h-3 w-20" />
-							</div>
-							<div className="col-span-2">
-								<Skeleton className="h-4 w-24" />
-							</div>
-							<div className="col-span-2">
-								<Skeleton className="h-4 w-24" />
-							</div>
-							<div className="col-span-2">
-								<Skeleton className="h-4 w-16" />
-							</div>
-							<div className="col-span-1">
-								<Skeleton className="h-5 w-16 rounded-full" />
-							</div>
-							<div className="col-span-1">
-								<Skeleton className="h-5 w-16 rounded" />
-							</div>
-							<div className="col-span-1">
-								<Skeleton className="h-4 w-20" />
-							</div>
-						</div>
-
-						{/* Mobile card */}
-						<div className="lg:hidden space-y-2">
-							<div className="flex items-center justify-between">
-								<Skeleton className="h-4 w-28" />
-								<div className="flex gap-2">
-									<Skeleton className="h-5 w-14 rounded" />
-									<Skeleton className="h-5 w-16 rounded-full" />
-								</div>
-							</div>
-							<div className="flex justify-between">
-								<Skeleton className="h-4 w-32" />
-								<Skeleton className="h-4 w-32" />
-							</div>
-							<div className="flex justify-between">
-								<Skeleton className="h-4 w-16" />
-								<Skeleton className="h-4 w-24" />
-							</div>
-						</div>
-					</div>
-				))}
-			</div>
-		</div>
-	);
+export interface TransactionsTableProps {
+	/** Optional wallet address to scope transactions */
+	address?: string;
+	/** Pre-fetched transactions (bypasses internal hook) */
+	transactions?: Transaction[];
+	/** Loading state (used when transactions prop is provided) */
+	loading?: boolean;
+	/** Error message (used when transactions prop is provided) */
+	error?: string | null;
+	/** Retry callback for error state */
+	onRetry?: () => void;
 }
 
 // --- Main Component ---
 
-export interface TransactionsTableProps {
-	address?: string;
-	isLoading?: boolean;
-}
-
 export default function TransactionsTable({
 	address,
-	isLoading = false,
+	transactions: transactionsProp,
+	loading: loadingProp,
+	error: errorProp,
+	onRetry,
 }: TransactionsTableProps = {}) {
+	// Use internal hook unless caller provides data directly
+	const hook = useTransactions(transactionsProp === undefined ? address : undefined);
+
+	const transactions = transactionsProp ?? hook.transactions;
+	const loading = loadingProp ?? hook.loading;
+	const error = errorProp !== undefined ? errorProp : hook.error;
+	const handleRetry = onRetry ?? hook.refetch;
+
 	const [search, setSearch] = useState("");
 	const [statusFilter, setStatusFilter] = useState<"all" | TransactionStatus>(
 		"all",
@@ -198,10 +123,23 @@ export default function TransactionsTable({
 	const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(5);
+	const initialTracked = useRef(false);
+
+	// Track page view on mount
+	useEffect(() => {
+		if (!initialTracked.current) {
+			initialTracked.current = true;
+			trackTransactionEvent("transactions_view", {
+				address: address ?? "all",
+			});
+		}
+	}, [address]);
 
 	const filteredData = useMemo(() => {
-		return mockTransactions.filter((tx) => {
-			if (address && tx.from !== address && tx.to !== address) return false;
+		return transactions.filter((tx) => {
+			if (address && transactionsProp !== undefined && tx.from !== address && tx.to !== address) {
+				return false;
+			}
 			const q = search.toLowerCase();
 			const matchesSearch =
 				tx.hash.toLowerCase().includes(q) ||
@@ -214,7 +152,7 @@ export default function TransactionsTable({
 				networkFilter === "all" || tx.network === networkFilter;
 			return matchesSearch && matchesStatus && matchesNetwork;
 		});
-	}, [search, statusFilter, networkFilter, address]);
+	}, [transactions, search, statusFilter, networkFilter, address, transactionsProp]);
 
 	const sortedData = useMemo(() => {
 		return [...filteredData].sort((a, b) => {
@@ -233,25 +171,32 @@ export default function TransactionsTable({
 	);
 
 	const handleSort = (key: keyof Transaction) => {
-		setSortConfig((prev) =>
-			prev?.key === key && prev.direction === "asc"
-				? { key, direction: "desc" }
-				: { key, direction: "asc" },
-		);
-	};
-
-	const handleSortKeyDown = (
-		e: React.KeyboardEvent,
-		key: keyof Transaction,
-	) => {
-		if (e.key === "Enter" || e.key === " ") {
-			e.preventDefault();
-			handleSort(key);
-		}
+		setSortConfig((prev) => {
+			const newConfig =
+				prev?.key === key && prev.direction === "asc"
+					? { key, direction: "desc" }
+					: { key, direction: "asc" };
+			trackTransactionEvent("transactions_sort", {
+				key,
+				direction: newConfig.direction,
+			});
+			return newConfig;
+		});
 	};
 
 	const handlePageChange = (page: number) => {
-		if (page >= 1 && page <= totalPages) setCurrentPage(page);
+		if (page >= 1 && page <= totalPages) {
+			setCurrentPage(page);
+			trackTransactionEvent("transactions_page_change", { page });
+		}
+	};
+
+	const handleItemsPerPageChange = (newSize: number) => {
+		setItemsPerPage(newSize);
+		setCurrentPage(1);
+		trackTransactionEvent("transactions_items_per_page", {
+			itemsPerPage: newSize,
+		});
 	};
 
 	const clearFilters = () => {
@@ -260,10 +205,65 @@ export default function TransactionsTable({
 		setNetworkFilter("all");
 		setSortConfig(DEFAULT_SORT);
 		setCurrentPage(1);
+		trackTransactionEvent("transactions_filters_cleared", {});
+	};
+
+	const handleFilterChange = (
+		type: "status" | "network",
+		value: string,
+	) => {
+		trackTransactionEvent("transactions_filter_changed", { type, value });
 	};
 
 	const hasActiveFilters =
 		search.length > 0 || statusFilter !== "all" || networkFilter !== "all";
+
+	// --- Loading skeleton ---
+	if (loading) {
+		return (
+			<div
+				className="w-full max-w-6xl mx-auto p-4 md:p-8 space-y-6 font-sans"
+				aria-busy="true"
+				aria-label="Loading transactions"
+				data-testid="transactions-loading"
+			>
+				<div className="h-8 w-48 rounded bg-slate-200 animate-pulse" />
+				<div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden divide-y divide-slate-100">
+					{Array.from({ length: 5 }).map((_, i) => (
+						// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
+						<div key={i} className="p-4 flex gap-4">
+							<div className="h-4 flex-1 rounded bg-slate-100 animate-pulse" />
+							<div className="h-4 w-24 rounded bg-slate-100 animate-pulse" />
+						</div>
+					))}
+				</div>
+			</div>
+		);
+	}
+
+	// --- Error state ---
+	if (error) {
+		return (
+			<div className="w-full max-w-6xl mx-auto p-4 md:p-8">
+				<ErrorState
+					description={error}
+					retry={{ onRetry: handleRetry }}
+				/>
+			</div>
+		);
+	}
+
+	// --- Empty state (no data at all, no filters active) ---
+	if (transactions.length === 0) {
+		return (
+			<div className="w-full max-w-6xl mx-auto p-4 md:p-8">
+				<EmptyState
+					title="No transactions yet"
+					description="Transactions will appear here once your Mux wallets start sending or receiving XLM."
+				/>
+			</div>
+		);
+	}
 
 	return (
 		<div className="w-full max-w-6xl mx-auto p-4 sm:p-6 md:p-8 space-y-6 font-sans">
@@ -320,8 +320,10 @@ export default function TransactionsTable({
 							className="w-full sm:w-36 pl-9 pr-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 appearance-none cursor-pointer"
 							value={statusFilter}
 							onChange={(e) => {
-								setStatusFilter(e.target.value as "all" | TransactionStatus);
+								const val = e.target.value as "all" | TransactionStatus;
+								setStatusFilter(val);
 								setCurrentPage(1);
+								handleFilterChange("status", val);
 							}}
 							aria-label="Filter by status"
 						>
@@ -338,8 +340,10 @@ export default function TransactionsTable({
 							className="w-full sm:w-32 px-3 py-2 bg-white border border-slate-200 text-slate-700 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 appearance-none cursor-pointer"
 							value={networkFilter}
 							onChange={(e) => {
-								setNetworkFilter(e.target.value as "all" | TransactionNetwork);
+								const val = e.target.value as "all" | TransactionNetwork;
+								setNetworkFilter(val);
 								setCurrentPage(1);
+								handleFilterChange("network", val);
 							}}
 							aria-label="Filter by network"
 						>
@@ -427,61 +431,108 @@ export default function TransactionsTable({
 						)}
 					</div>
 
-					<div className="divide-y divide-slate-100" role="rowgroup">
-						{currentData.length > 0 ? (
-							currentData.map((tx) => (
-								<div
-									key={tx.hash}
-									data-testid="tx-row"
-									role="row"
-									className="group p-4 hover:bg-slate-50 transition-colors"
-								>
-									{/* Desktop row */}
-									<div className="hidden lg:grid grid-cols-12 gap-2 items-center">
-										<div className="col-span-3 flex items-center">
+				<div className="divide-y divide-slate-100">
+					{currentData.length > 0 ? (
+						currentData.map((tx) => (
+							<div
+								key={tx.hash}
+								data-testid="tx-row"
+								className="group p-4 hover:bg-slate-50 transition-colors"
+							>
+								{/* Desktop row */}
+								<div className="hidden lg:grid grid-cols-12 gap-2 items-center">
+									<div className="col-span-3">
+										<span
+											className="font-mono text-xs text-indigo-600 truncate block"
+											title={tx.hash}
+										>
+											{truncate(tx.hash, 8, 6)}
+										</span>
+										{tx.memo && (
+											<span className="text-xs text-slate-400 truncate block">
+												{tx.memo}
+											</span>
+										)}
+									</div>
+									<div
+										className="col-span-2 font-mono text-xs text-slate-600 truncate"
+										title={tx.from}
+									>
+										{truncate(tx.from)}
+									</div>
+									<div
+										className="col-span-2 font-mono text-xs text-slate-600 truncate"
+										title={tx.to}
+									>
+										{truncate(tx.to)}
+									</div>
+									<div className="col-span-2 font-semibold text-sm tabular-nums text-slate-900">
+										{Number(tx.amountXlm).toLocaleString(undefined, {
+											minimumFractionDigits: 2,
+											maximumFractionDigits: 7,
+										})}
+									</div>
+									<div className="col-span-1">
+										<StatusPill status={tx.status} />
+									</div>
+									<div className="col-span-1">
+										<NetworkBadge network={tx.network} />
+									</div>
+									<div className="col-span-1 text-xs text-slate-500">
+										{formatDate(tx.createdAt)}
+									</div>
+								</div>
+
+								{/* Mobile card — polished layout */}
+								<div className="lg:hidden">
+									{/* Top row: hash + badges */}
+									<div className="flex items-start justify-between gap-2 mb-3">
+										<div className="flex-1 min-w-0">
 											<span
-												className="font-mono text-xs text-indigo-600 truncate"
+												className="font-mono text-xs font-medium text-indigo-600 break-all leading-snug"
 												title={tx.hash}
 											>
 												{truncate(tx.hash, 8, 6)}
 											</span>
-											<CopyButton
-												text={tx.hash}
-												label={`Copy transaction hash ${tx.hash}`}
-											/>
-											{tx.memo && (
-												<span className="text-xs text-slate-400 truncate block">
-													{tx.memo}
-												</span>
-											)}
 										</div>
-										<div className="col-span-2 flex items-center font-mono text-xs text-slate-600 truncate">
-											<span title={tx.from}>{truncate(tx.from)}</span>
-											<CopyButton
-												text={tx.from}
-												label={`Copy from address ${tx.from}`}
-											/>
-										</div>
-										<div className="col-span-2 flex items-center font-mono text-xs text-slate-600 truncate">
-											<span title={tx.to}>{truncate(tx.to)}</span>
-											<CopyButton
-												text={tx.to}
-												label={`Copy to address ${tx.to}`}
-											/>
-										</div>
-										<div className="col-span-2 font-semibold text-sm tabular-nums text-slate-900">
-											{Number(tx.amountXlm).toLocaleString(undefined, {
-												minimumFractionDigits: 2,
-												maximumFractionDigits: 7,
-											})}
-										</div>
-										<div className="col-span-1">
+										<div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
 											<StatusPill status={tx.status} />
-										</div>
-										<div className="col-span-1">
 											<NetworkBadge network={tx.network} />
 										</div>
-										<div className="col-span-1 text-xs text-slate-500">
+									</div>
+
+									{/* From / To row */}
+									<div className="flex gap-3 mb-2">
+										<div className="flex-1 min-w-0 bg-slate-50 rounded-lg p-2.5">
+											<span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
+												From
+											</span>
+											<p className="font-mono text-xs text-slate-700 truncate" title={tx.from}>
+												{truncate(tx.from)}
+											</p>
+										</div>
+										<div className="flex-1 min-w-0 bg-slate-50 rounded-lg p-2.5">
+											<span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
+												To
+											</span>
+											<p className="font-mono text-xs text-slate-700 truncate" title={tx.to}>
+												{truncate(tx.to)}
+											</p>
+										</div>
+									</div>
+
+									{/* Amount + Date row */}
+									<div className="flex items-center justify-between pt-2 border-t border-slate-100">
+										<div className="flex items-baseline gap-1.5">
+											<span className="font-semibold text-sm tabular-nums text-slate-900">
+												{Number(tx.amountXlm).toLocaleString(undefined, {
+													minimumFractionDigits: 2,
+													maximumFractionDigits: 7,
+												})}
+											</span>
+											<span className="text-xs font-medium text-slate-400">XLM</span>
+										</div>
+										<span className="text-xs text-slate-400">
 											{formatDate(tx.createdAt)}
 										</div>
 									</div>
@@ -544,6 +595,11 @@ export default function TransactionsTable({
 											<p className="text-xs text-slate-400">Memo: {tx.memo}</p>
 										)}
 									</div>
+									{tx.memo && (
+										<p className="text-xs text-slate-400 mt-2 italic leading-relaxed bg-slate-50 rounded-md px-2.5 py-1.5">
+											Memo: {tx.memo}
+										</p>
+									)}
 								</div>
 							))
 						) : (
@@ -565,8 +621,27 @@ export default function TransactionsTable({
 									Clear all filters
 								</button>
 							</div>
-						)}
-					</div>
+						))
+					) : (
+						<div className="p-12 text-center" data-testid="no-results">
+							<div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 mb-3">
+								<Search size={20} className="text-slate-400" />
+							</div>
+							<h3 className="text-sm font-medium text-slate-900">
+								No transactions found
+							</h3>
+							<p className="text-sm text-slate-500 mt-1">
+								No results for current filters.
+							</p>
+							<button
+								onClick={clearFilters}
+								className="mt-4 text-sm text-indigo-600 font-medium hover:text-indigo-700"
+							>
+								Clear all filters
+							</button>
+						</div>
+					)}
+				</div>
 
 					{/* Pagination */}
 					{sortedData.length > 0 && (
