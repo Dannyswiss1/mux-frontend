@@ -2,11 +2,25 @@ import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
 
 export type ToastVariant = "success" | "error" | "info";
 
+/** Props for the `Toast` notification component. */
 export interface ToastProps {
+	/** Whether the toast is visible. When `false` nothing is rendered. */
 	open: boolean;
+	/** The body text shown below the title. */
 	message: string;
+	/**
+	 * Visual style variant.
+	 * Defaults to `"success"` when omitted.
+	 */
 	variant?: ToastVariant;
+	/**
+	 * Overrides the default title for the variant (`"Success"` / `"Error"` / `"Info"`).
+	 */
 	title?: string;
+	/**
+	 * When provided, renders a dismiss (✕) button that calls this handler.
+	 * Omit to render a non-dismissible toast.
+	 */
 	onClose?: () => void;
 }
 

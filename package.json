@@ -10,7 +10,7 @@
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
 		"lint": "eslint",
-		"lint:fix": "biome format . --write && biome check . --write",
+		"lint:fix": "biome format --staged --write && biome check --staged --write",
 		"prepare": "husky"
 	},
 	"lint-staged": {
