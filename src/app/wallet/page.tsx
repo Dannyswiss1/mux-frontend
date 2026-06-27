@@ -44,7 +44,7 @@ function WalletPageContent() {
 	return (
 		<div className="min-h-screen bg-neutral-50 text-neutral-900 font-sans p-6 md:p-12">
 			<div className="max-w-4xl mx-auto space-y-8">
-				<header className="flex items-center justify-between mb-8">
+				<header className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-center sm:justify-between">
 					<div>
 						<h1 className="text-3xl font-bold tracking-tight text-neutral-900">
 							Wallet Details
