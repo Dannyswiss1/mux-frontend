@@ -35,10 +35,21 @@ export function WalletDetail({ id }: WalletDetailProps) {
 	}
 
 	if (error && !wallet) {
+		const isNotFound =
+			error.toLowerCase().includes("not found") || error === "not_found";
 		return (
 			<ErrorState
-				description={error}
-				retry={{ label: "Retry", onRetry: refresh }}
+				title={isNotFound ? "Wallet not found" : "Failed to load wallet"}
+				description={
+					isNotFound
+						? "This wallet doesn't exist or the ID is invalid."
+						: `${error}. Check your connection and try again.`
+				}
+				retry={
+					isNotFound
+						? undefined
+						: { label: "Try Again", onRetry: refresh }
+				}
 			/>
 		);
 	}
@@ -89,7 +100,12 @@ export function WalletDetail({ id }: WalletDetailProps) {
 				)}
 
 				{error && wallet && (
-					<p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+					<p
+						role="alert"
+						className="mt-2 text-sm text-red-600 dark:text-red-400"
+					>
+						Balance refresh failed: {error}
+					</p>
 				)}
 			</div>
 
