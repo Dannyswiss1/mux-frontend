@@ -8,15 +8,14 @@ import {
 	Search,
 	X,
 } from "lucide-react";
-import React, { useMemo, useState } from "react";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { ErrorState } from "@/components/ui/ErrorState";
-import { useTransactions } from "@/hooks/useTransactions";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { mockTransactions } from "@/mock-data/transactions";
 import type {
 	Transaction,
 	TransactionNetwork,
 	TransactionStatus,
 } from "@/types/transaction";
+import { trackTransactionEvent } from "@/services/analyticsTracking";
 
 // --- Helpers ---
 
@@ -123,6 +122,17 @@ export default function TransactionsTable({
 	const [sortConfig, setSortConfig] = useState<SortConfig>(DEFAULT_SORT);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(5);
+	const initialTracked = useRef(false);
+
+	// Track page view on mount
+	useEffect(() => {
+		if (!initialTracked.current) {
+			initialTracked.current = true;
+			trackTransactionEvent("transactions_view", {
+				address: address ?? "all",
+			});
+		}
+	}, [address]);
 
 	const filteredData = useMemo(() => {
 		return transactions.filter((tx) => {
@@ -160,20 +170,32 @@ export default function TransactionsTable({
 	);
 
 	const handleSort = (key: keyof Transaction) => {
-		setSortConfig((prev) =>
-			prev?.key === key && prev.direction === "asc"
-				? { key, direction: "desc" }
-				: { key, direction: "asc" },
-		);
+		setSortConfig((prev) => {
+			const newConfig =
+				prev?.key === key && prev.direction === "asc"
+					? { key, direction: "desc" }
+					: { key, direction: "asc" };
+			trackTransactionEvent("transactions_sort", {
+				key,
+				direction: newConfig.direction,
+			});
+			return newConfig;
+		});
 	};
 
 	const handlePageChange = (page: number) => {
-		if (page >= 1 && page <= totalPages) setCurrentPage(page);
+		if (page >= 1 && page <= totalPages) {
+			setCurrentPage(page);
+			trackTransactionEvent("transactions_page_change", { page });
+		}
 	};
 
 	const handleItemsPerPageChange = (newSize: number) => {
 		setItemsPerPage(newSize);
 		setCurrentPage(1);
+		trackTransactionEvent("transactions_items_per_page", {
+			itemsPerPage: newSize,
+		});
 	};
 
 	const clearFilters = () => {
@@ -182,6 +204,14 @@ export default function TransactionsTable({
 		setNetworkFilter("all");
 		setSortConfig(DEFAULT_SORT);
 		setCurrentPage(1);
+		trackTransactionEvent("transactions_filters_cleared", {});
+	};
+
+	const handleFilterChange = (
+		type: "status" | "network",
+		value: string,
+	) => {
+		trackTransactionEvent("transactions_filter_changed", { type, value });
 	};
 
 	const hasActiveFilters =
@@ -286,8 +316,10 @@ export default function TransactionsTable({
 							className="w-full sm:w-36 pl-9 pr-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 appearance-none cursor-pointer"
 							value={statusFilter}
 							onChange={(e) => {
-								setStatusFilter(e.target.value as "all" | TransactionStatus);
+								const val = e.target.value as "all" | TransactionStatus;
+								setStatusFilter(val);
 								setCurrentPage(1);
+								handleFilterChange("status", val);
 							}}
 							aria-label="Filter by status"
 						>
@@ -304,8 +336,10 @@ export default function TransactionsTable({
 							className="w-full sm:w-32 px-3 py-2 bg-white border border-slate-200 text-slate-700 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 appearance-none cursor-pointer"
 							value={networkFilter}
 							onChange={(e) => {
-								setNetworkFilter(e.target.value as "all" | TransactionNetwork);
+								const val = e.target.value as "all" | TransactionNetwork;
+								setNetworkFilter(val);
 								setCurrentPage(1);
+								handleFilterChange("network", val);
 							}}
 							aria-label="Filter by network"
 						>
@@ -433,48 +467,63 @@ export default function TransactionsTable({
 									</div>
 								</div>
 
-								{/* Mobile card */}
-								<div className="lg:hidden space-y-2">
-									<div className="flex items-center justify-between">
-										<span
-											className="font-mono text-xs text-indigo-600"
-											title={tx.hash}
-										>
-											{truncate(tx.hash, 8, 6)}
-										</span>
-										<div className="flex items-center gap-2">
-											<NetworkBadge network={tx.network} />
+								{/* Mobile card — polished layout */}
+								<div className="lg:hidden">
+									{/* Top row: hash + badges */}
+									<div className="flex items-start justify-between gap-2 mb-3">
+										<div className="flex-1 min-w-0">
+											<span
+												className="font-mono text-xs font-medium text-indigo-600 break-all leading-snug"
+												title={tx.hash}
+											>
+												{truncate(tx.hash, 8, 6)}
+											</span>
+										</div>
+										<div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
 											<StatusPill status={tx.status} />
+											<NetworkBadge network={tx.network} />
 										</div>
 									</div>
-									<div className="flex justify-between text-xs text-slate-500">
-										<span>
-											<span className="font-medium text-slate-700">From: </span>
-											<span className="font-mono" title={tx.from}>
+
+									{/* From / To row */}
+									<div className="flex gap-3 mb-2">
+										<div className="flex-1 min-w-0 bg-slate-50 rounded-lg p-2.5">
+											<span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
+												From
+											</span>
+											<p className="font-mono text-xs text-slate-700 truncate" title={tx.from}>
 												{truncate(tx.from)}
+											</p>
+										</div>
+										<div className="flex-1 min-w-0 bg-slate-50 rounded-lg p-2.5">
+											<span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
+												To
 											</span>
-										</span>
-										<span>
-											<span className="font-medium text-slate-700">To: </span>
-											<span className="font-mono" title={tx.to}>
+											<p className="font-mono text-xs text-slate-700 truncate" title={tx.to}>
 												{truncate(tx.to)}
-											</span>
-										</span>
+											</p>
+										</div>
 									</div>
-									<div className="flex justify-between items-center">
-										<span className="font-semibold text-sm tabular-nums text-slate-900">
-											{Number(tx.amountXlm).toLocaleString(undefined, {
-												minimumFractionDigits: 2,
-												maximumFractionDigits: 7,
-											})}{" "}
-											XLM
-										</span>
+
+									{/* Amount + Date row */}
+									<div className="flex items-center justify-between pt-2 border-t border-slate-100">
+										<div className="flex items-baseline gap-1.5">
+											<span className="font-semibold text-sm tabular-nums text-slate-900">
+												{Number(tx.amountXlm).toLocaleString(undefined, {
+													minimumFractionDigits: 2,
+													maximumFractionDigits: 7,
+												})}
+											</span>
+											<span className="text-xs font-medium text-slate-400">XLM</span>
+										</div>
 										<span className="text-xs text-slate-400">
 											{formatDate(tx.createdAt)}
 										</span>
 									</div>
 									{tx.memo && (
-										<p className="text-xs text-slate-400">Memo: {tx.memo}</p>
+										<p className="text-xs text-slate-400 mt-2 italic leading-relaxed bg-slate-50 rounded-md px-2.5 py-1.5">
+											Memo: {tx.memo}
+										</p>
 									)}
 								</div>
 							</div>

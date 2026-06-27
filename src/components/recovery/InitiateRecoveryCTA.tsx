@@ -3,13 +3,43 @@
 import { Button } from "@/components/ui/button";
 import { type UseRecoveryReturn } from "@/hooks/useRecovery";
 
+/**
+ * Props for the {@link InitiateRecoveryCTA} component.
+ */
 interface InitiateRecoveryCTAProps {
+	/**
+	 * The full return value of the {@link useRecovery} hook.
+	 *
+	 * The component reads `state` and `errorMessage` to decide which UI to
+	 * render, and wires the callback functions (`initiateRecovery`,
+	 * `confirmRecovery`, `cancelRecovery`, `resetRecovery`) to the relevant
+	 * buttons so that state transitions happen without any additional wiring in
+	 * the parent.
+	 */
 	recovery: UseRecoveryReturn;
 }
 
 /**
- * CTA stub for initiating wallet recovery.
- * Renders different UI based on the current recovery state.
+ * Call-to-action card that drives the wallet recovery state machine.
+ *
+ * Renders a different UI for each phase of the recovery flow:
+ *
+ * | `recovery.state` | Rendered UI                                              |
+ * |------------------|----------------------------------------------------------|
+ * | `"idle"`         | Primary "Initiate recovery" button                       |
+ * | `"error"`        | Same as idle but with an inline error alert above button |
+ * | `"confirming"`   | Amber confirmation panel with confirm / cancel buttons   |
+ * | `"pending"`      | Spinner with "Submitting recovery request…" message      |
+ * | `"success"`      | Green success banner with a "Dismiss" button             |
+ *
+ * All state transitions are delegated to the `recovery` prop so this component
+ * remains a pure presentation layer.
+ *
+ * @example
+ * function Page() {
+ *   const recovery = useRecovery();
+ *   return <InitiateRecoveryCTA recovery={recovery} />;
+ * }
  */
 export function InitiateRecoveryCTA({ recovery }: InitiateRecoveryCTAProps) {
 	const {
