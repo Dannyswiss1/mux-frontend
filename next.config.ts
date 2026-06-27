@@ -1,7 +1,9 @@
-import type { NextConfig } from "next";
+import { validateEnv } from "./src/lib/env";
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
+// Validate environment variables at build/startup time
+validateEnv();
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {};
 
 export default nextConfig;
