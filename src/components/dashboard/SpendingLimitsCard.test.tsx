@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SpendingLimitsCard } from "./SpendingLimitsCard";
 
 describe("SpendingLimitsCard", () => {
@@ -208,5 +209,100 @@ describe("SpendingLimitsCard loading state", () => {
 		expect(
 			screen.getByRole("heading", { name: /spending limits/i }),
 		).toBeInTheDocument();
+	});
+});
+
+describe("SpendingLimitsCard form validation", () => {
+	beforeEach(() => {
+		vi.stubGlobal("localStorage", {
+			getItem: vi.fn().mockReturnValue(null),
+			setItem: vi.fn(),
+		});
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it("shows error when daily limit is empty on save", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		await user.clear(screen.getByRole("spinbutton", { name: /daily spending limit/i }));
+		await user.click(screen.getByRole("button", { name: /save settings/i }));
+
+		expect(screen.getByRole("alert")).toHaveTextContent(/required/i);
+		expect(localStorage.setItem).not.toHaveBeenCalled();
+	});
+
+	it("shows error when daily limit is below minimum", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		await user.clear(screen.getByRole("spinbutton", { name: /daily spending limit/i }));
+		await user.type(screen.getByRole("spinbutton", { name: /daily spending limit/i }), "0");
+		await user.click(screen.getByRole("button", { name: /save settings/i }));
+
+		expect(screen.getByRole("alert")).toHaveTextContent(/minimum/i);
+		expect(localStorage.setItem).not.toHaveBeenCalled();
+	});
+
+	it("shows error when daily limit exceeds maximum", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		await user.clear(screen.getByRole("spinbutton", { name: /daily spending limit/i }));
+		await user.type(screen.getByRole("spinbutton", { name: /daily spending limit/i }), "9999999");
+		await user.click(screen.getByRole("button", { name: /save settings/i }));
+
+		expect(screen.getByRole("alert")).toHaveTextContent(/maximum/i);
+		expect(localStorage.setItem).not.toHaveBeenCalled();
+	});
+
+	it("shows error for tx limit independently", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		await user.clear(screen.getByRole("spinbutton", { name: /per-transaction limit/i }));
+		await user.click(screen.getByRole("button", { name: /save settings/i }));
+
+		const alerts = screen.getAllByRole("alert");
+		expect(alerts).toHaveLength(1);
+		expect(alerts[0]).toHaveTextContent(/required/i);
+		expect(localStorage.setItem).not.toHaveBeenCalled();
+	});
+
+	it("clears error on input change", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		const input = screen.getByRole("spinbutton", { name: /daily spending limit/i });
+		await user.clear(input);
+		await user.click(screen.getByRole("button", { name: /save settings/i }));
+		expect(screen.getByRole("alert")).toBeInTheDocument();
+
+		await user.type(input, "1000");
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+	});
+
+	it("saves successfully when both fields are valid", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		await user.click(screen.getByRole("button", { name: /save settings/i }));
+
+		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+		expect(localStorage.setItem).toHaveBeenCalled();
+	});
+
+	it("marks invalid input with aria-invalid", async () => {
+		const user = userEvent.setup();
+		render(<SpendingLimitsCard />);
+
+		const input = screen.getByRole("spinbutton", { name: /daily spending limit/i });
+		await user.clear(input);
+		await user.click(screen.getByRole("button", { name: /save settings/i }));
+
+		expect(input).toHaveAttribute("aria-invalid", "true");
 	});
 });
