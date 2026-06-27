@@ -2,6 +2,7 @@
 
 import { Check, Copy, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { NetworkBadge } from "@/components/wallet/NetworkBadge";
@@ -20,11 +21,33 @@ export function WalletDetail({ id }: WalletDetailProps) {
 		useWalletBalance(id);
 	const { copy, copied } = useCopyToClipboard();
 
+	const isNotFound =
+		!!error &&
+		(error.toLowerCase().includes("not found") || error === "not_found");
+
+	if (isNotFound) {
+		return (
+			<EmptyState
+				title="Wallet not found"
+				description="No wallet exists for this ID. It may have been removed or the link is invalid."
+			/>
+		);
+	}
+
 	if (error && !wallet) {
 		return (
 			<ErrorState
 				description={error}
 				retry={{ label: "Retry", onRetry: refresh }}
+			/>
+		);
+	}
+
+	if (!loading && !wallet) {
+		return (
+			<EmptyState
+				title="No wallet data"
+				description="This wallet has no data to display yet."
 			/>
 		);
 	}
