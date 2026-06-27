@@ -21,6 +21,16 @@ function safeSaveValue(value: string) {
 	return Number.isFinite(parsed) ? parsed : 0;
 }
 
+/** Returns an error message string or null if valid. */
+function validateLimit(value: string): string | null {
+	if (value.trim() === "") return "This field is required.";
+	const n = Number(value);
+	if (!Number.isFinite(n)) return "Please enter a valid number.";
+	if (n < MIN_LIMIT) return `Minimum is $${MIN_LIMIT}.`;
+	if (n > MAX_LIMIT) return `Maximum is $${MAX_LIMIT.toLocaleString()}.`;
+	return null;
+}
+
 interface SpendingLimitsCardProps {
 	loading?: boolean;
 }
@@ -30,6 +40,8 @@ export function SpendingLimitsCard({
 }: SpendingLimitsCardProps) {
 	const [dailyLimit, setDailyLimit] = useState("5000");
 	const [transactionLimit, setTransactionLimit] = useState("1000");
+	const [dailyError, setDailyError] = useState<string | null>(null);
+	const [txError, setTxError] = useState<string | null>(null);
 	const [toastOpen, setToastOpen] = useState(false);
 	const [toastVariant, setToastVariant] = useState<"success" | "error">("success");
 	const [toastMessage, setToastMessage] = useState("Spending limits saved.");
@@ -39,32 +51,19 @@ export function SpendingLimitsCard({
 	useEffect(() => {
 		try {
 			const stored = window.localStorage.getItem(STORAGE_KEY);
-			if (!stored) {
-				return;
-			}
-
+			if (!stored) return;
 			const parsed = JSON.parse(stored);
-			if (
-				typeof parsed?.dailyLimit === "number" &&
-				isFinite(parsed.dailyLimit)
-			) {
+			if (typeof parsed?.dailyLimit === "number" && isFinite(parsed.dailyLimit)) {
 				setDailyLimit(String(parsed.dailyLimit));
 			}
-
-			if (
-				typeof parsed?.transactionLimit === "number" &&
-				isFinite(parsed.transactionLimit)
-			) {
+			if (typeof parsed?.transactionLimit === "number" && isFinite(parsed.transactionLimit)) {
 				setTransactionLimit(String(parsed.transactionLimit));
 			}
 		} catch {
 			// Ignore invalid stored data and continue with defaults.
 		}
-
 		return () => {
-			if (toastTimeoutRef.current) {
-				window.clearTimeout(toastTimeoutRef.current);
-			}
+			if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
 		};
 	}, []);
 
@@ -72,9 +71,7 @@ export function SpendingLimitsCard({
 	const totalLimit = Number.parseInt(dailyLimit) || 1;
 	const usagePercentage = Math.min((usedAmount / totalLimit) * 100, 100);
 
-	if (loading) {
-		return <SpendingLimitsCardSkeleton />;
-	}
+	if (loading) return <SpendingLimitsCardSkeleton />;
 
 	const showToast = (variant: "success" | "error", message: string) => {
 		setToastVariant(variant);
@@ -170,14 +167,24 @@ export function SpendingLimitsCard({
 									max={MAX_LIMIT}
 									step={1}
 									value={dailyLimit}
-									onChange={(e) => setDailyLimit(e.target.value)}
-									className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-2 pl-7 pr-3 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-800 dark:bg-zinc-900"
+									onChange={(e) => { setDailyLimit(e.target.value); setDailyError(null); }}
+									aria-invalid={dailyError !== null}
+									aria-describedby={dailyError ? "daily-limit-error" : undefined}
+									className={`w-full rounded-lg border bg-zinc-50 py-2 pl-7 pr-3 text-sm transition-all focus:outline-none focus:ring-2 dark:bg-zinc-900 ${
+										dailyError
+											? "border-red-400 focus:ring-red-500/20 dark:border-red-500"
+											: "border-zinc-200 focus:ring-blue-500/20 dark:border-zinc-800"
+									}`}
 									placeholder="0.00"
 								/>
 							</div>
-							<p className="text-xs text-zinc-500">
-								Maximum amount you can spend per day.
-							</p>
+							{dailyError ? (
+								<p id="daily-limit-error" role="alert" className="text-xs text-red-600 dark:text-red-400">
+									{dailyError}
+								</p>
+							) : (
+								<p className="text-xs text-zinc-500">Maximum amount you can spend per day.</p>
+							)}
 						</div>
 
 						<div className="space-y-2">
@@ -199,14 +206,24 @@ export function SpendingLimitsCard({
 									max={MAX_LIMIT}
 									step={1}
 									value={transactionLimit}
-									onChange={(e) => setTransactionLimit(e.target.value)}
-									className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-2 pl-7 pr-3 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-800 dark:bg-zinc-900"
+									onChange={(e) => { setTransactionLimit(e.target.value); setTxError(null); }}
+									aria-invalid={txError !== null}
+									aria-describedby={txError ? "tx-limit-error" : undefined}
+									className={`w-full rounded-lg border bg-zinc-50 py-2 pl-7 pr-3 text-sm transition-all focus:outline-none focus:ring-2 dark:bg-zinc-900 ${
+										txError
+											? "border-red-400 focus:ring-red-500/20 dark:border-red-500"
+											: "border-zinc-200 focus:ring-blue-500/20 dark:border-zinc-800"
+									}`}
 									placeholder="0.00"
 								/>
 							</div>
-							<p className="text-xs text-zinc-500">
-								Maximum cap for a single transaction.
-							</p>
+							{txError ? (
+								<p id="tx-limit-error" role="alert" className="text-xs text-red-600 dark:text-red-400">
+									{txError}
+								</p>
+							) : (
+								<p className="text-xs text-zinc-500">Maximum cap for a single transaction.</p>
+							)}
 						</div>
 					</div>
 
@@ -245,7 +262,6 @@ function SpendingLimitsCardSkeleton() {
 				</div>
 				<Skeleton className="h-5 w-14 rounded-full" />
 			</div>
-
 			<div className="space-y-8 p-6">
 				<div className="space-y-3">
 					<div className="flex items-end justify-between">
@@ -257,7 +273,6 @@ function SpendingLimitsCardSkeleton() {
 					</div>
 					<Skeleton className="h-2 w-full rounded-full" />
 				</div>
-
 				<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 					<div className="space-y-2">
 						<Skeleton className="h-4 w-36" />
@@ -270,10 +285,8 @@ function SpendingLimitsCardSkeleton() {
 						<Skeleton className="h-3 w-44" />
 					</div>
 				</div>
-
 				<Skeleton className="h-16 w-full rounded-lg" />
 			</div>
-
 			<div className="flex justify-end bg-zinc-50 px-6 py-4 dark:bg-zinc-900/50">
 				<Skeleton className="h-9 w-32 rounded-full" />
 			</div>
