@@ -15,10 +15,31 @@ import { trackWalletEvent } from "@/services/walletAnalyticsTracking";
 import { truncateAddress } from "@/utils/addressFormatting";
 import { formatDate } from "@/utils/dateFormatting";
 
+/**
+ * Props for the WalletDetail component.
+ */
 interface WalletDetailProps {
+	/**
+	 * The unique identifier of the wallet to display.
+	 * Used to fetch live balance and metadata from the backend.
+	 */
 	id: string;
 }
 
+const TOAST_DURATION_MS = 3000;
+
+/**
+ * Displays live balance and metadata for a single wallet.
+ *
+ * Fetches wallet data via `useWalletBalance` and auto-refreshes on an interval.
+ * Provides one-click copy of the wallet address with toast confirmation,
+ * a manual refresh button with feedback, and graceful error/loading states.
+ *
+ * @example
+ * ```tsx
+ * <WalletDetail id="wallet-001" />
+ * ```
+ */
 export function WalletDetail({ id }: WalletDetailProps) {
 	const { wallet, balance, loading, error, lastUpdated, refresh } =
 		useWalletBalance(id);
@@ -117,7 +138,6 @@ export function WalletDetail({ id }: WalletDetailProps) {
 							/>
 						</button>
 					</div>
-				</div>
 
 				{loading && !balance ? (
 					<Skeleton className="h-12 w-48" aria-hidden="true" />
@@ -220,10 +240,27 @@ export function WalletDetail({ id }: WalletDetailProps) {
 						{wallet.lastActivity && (
 							<div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
 								<dt className="text-sm text-zinc-500 dark:text-zinc-400">
-									Last Activity
+									Address
 								</dt>
-								<dd className="text-sm text-zinc-700 dark:text-zinc-300">
-									{formatDate(wallet.lastActivity)}
+								<dd className="flex items-center gap-2">
+									<code className="rounded bg-zinc-100 px-2 py-1 font-mono text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+										{truncateAddress(wallet.address)}
+									</code>
+									<Button
+										variant="ghost"
+										size="icon-sm"
+										onClick={() => copy(wallet.address)}
+										title={copied ? "Copied!" : "Copy address"}
+										aria-label={
+											copied ? "Address copied" : "Copy wallet address"
+										}
+									>
+										{copied ? (
+											<Check className="h-4 w-4 text-green-500 dark:text-green-400" />
+										) : (
+											<Copy className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+										)}
+									</Button>
 								</dd>
 							</div>
 						)}
@@ -238,10 +275,42 @@ export function WalletDetail({ id }: WalletDetailProps) {
 								<Skeleton className="h-4 w-20" />
 								<Skeleton className="h-6 w-32" />
 							</div>
-						))}
+							<div className="flex items-center justify-between py-3">
+								<dt className="text-sm text-zinc-500 dark:text-zinc-400">
+									Created
+								</dt>
+								<dd className="text-sm text-zinc-700 dark:text-zinc-300">
+									{formatDate(wallet.createdAt)}
+								</dd>
+							</div>
+							{wallet.lastActivity && (
+								<div className="flex items-center justify-between py-3 last:pb-0">
+									<dt className="text-sm text-zinc-500 dark:text-zinc-400">
+										Last Activity
+									</dt>
+									<dd className="text-sm text-zinc-700 dark:text-zinc-300">
+										{formatDate(wallet.lastActivity)}
+									</dd>
+								</div>
+							)}
+						</dl>
 					</div>
-				</div>
-			)}
-		</div>
+				) : (
+					<div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:shadow-none">
+						<Skeleton className="mb-4 h-4 w-24" />
+						<div className="space-y-4">
+							{[...Array(4)].map((_, i) => (
+								<div key={i} className="flex items-center justify-between">
+									<Skeleton className="h-4 w-20" />
+									<Skeleton className="h-6 w-32" />
+								</div>
+							))}
+						</div>
+					</div>
+				)}
+			</div>
+
+			<Toast open={toastOpen} message={toastMessage} />
+		</>
 	);
 }
