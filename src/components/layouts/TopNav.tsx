@@ -5,11 +5,14 @@ import {
 	BellIcon,
 	ChevronDownIcon,
 	MagnifyingGlassIcon,
+	MoonIcon,
+	SunIcon,
 } from "@heroicons/react/24/outline";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useNetwork } from "@/context/NetworkContext";
+import { useDarkMode } from "@/hooks/useDarkMode";
 
 interface TopNavProps {
 	onMenuClick: () => void;
@@ -26,6 +29,7 @@ export function TopNav({ onMenuClick }: TopNavProps) {
 	const pathname = usePathname();
 	const { network, setNetwork } = useNetwork();
 	const { user, isLoading } = useAuth();
+	const { isDark, toggle: toggleDark } = useDarkMode();
 
 	// Get current page title from pathname
 	const pageTitle = (() => {
@@ -55,7 +59,7 @@ export function TopNav({ onMenuClick }: TopNavProps) {
 	}, [pageTitle, network]);
 
 	return (
-		<header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white/95 px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8 backdrop-blur supports-backdrop-filter:bg-white/60">
+		<header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white/95 px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8 backdrop-blur supports-backdrop-filter:bg-white/60 dark:border-zinc-800 dark:bg-zinc-900/95 dark:supports-backdrop-filter:bg-zinc-900/60">
 			{/* Menu button for mobile */}
 			<button
 				type="button"
@@ -157,6 +161,20 @@ export function TopNav({ onMenuClick }: TopNavProps) {
 					>
 						<span className="sr-only">Search</span>
 						<MagnifyingGlassIcon className="h-5 w-5" aria-hidden="true" />
+					</button>
+
+					{/* Dark mode toggle */}
+					<button
+						type="button"
+						onClick={toggleDark}
+						aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+						className="rounded-full p-1 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:text-zinc-400 dark:hover:text-zinc-300"
+					>
+						{isDark ? (
+							<SunIcon className="h-5 w-5" aria-hidden="true" />
+						) : (
+							<MoonIcon className="h-5 w-5" aria-hidden="true" />
+						)}
 					</button>
 
 					{/* Notifications */}
