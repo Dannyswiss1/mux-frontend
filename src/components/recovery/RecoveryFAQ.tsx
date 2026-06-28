@@ -4,9 +4,15 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { RecoveryDocsLink } from "./RecoveryDocsLink";
 
+/**
+ * A single item in the FAQ accordion.
+ */
 export interface FAQItem {
+	/** Unique identifier used as the ARIA control/region id pair. */
 	id: string;
+	/** Short question text shown in the collapsed trigger button. */
 	question: string;
+	/** Full answer text revealed when the item is expanded. */
 	answer: string;
 }
 
@@ -49,9 +55,24 @@ export const FAQ_ITEMS: FAQItem[] = [
 	},
 ];
 
+/**
+ * Props for the {@link RecoveryFAQ} accordion component.
+ */
 interface RecoveryFAQProps {
-	/** Override the default FAQ items — useful for testing or custom content. */
+	/**
+	 * FAQ items to render in the accordion.
+	 *
+	 * Defaults to the built-in {@link FAQ_ITEMS} array. Pass a custom array
+	 * to override the content for testing or localised deployments.
+	 * An empty array renders a "No FAQ items available" fallback message.
+	 *
+	 * @default FAQ_ITEMS
+	 */
 	items?: FAQItem[];
+
+	/**
+	 * Additional Tailwind classes merged onto the root `<section>` element.
+	 */
 	className?: string;
 }
 
@@ -156,7 +177,8 @@ export function RecoveryFAQ({
 
 			<div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 				<p className="text-sm text-zinc-600 dark:text-zinc-400">
-					Looking for more technical details? Check out our complete recovery guide.
+					Looking for more technical details? Check out our complete recovery
+					guide.
 				</p>
 				<RecoveryDocsLink />
 			</div>

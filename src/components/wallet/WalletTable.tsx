@@ -35,7 +35,9 @@ function WalletAddressCell({
 }) {
 	const { copy, copied, error } = useCopyToClipboard();
 
-	const handleCopy = async () => {
+	const handleCopy = async (e: React.MouseEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
 		const success = await copy(address, address);
 		if (success) {
 			onCopySuccess?.(address);
@@ -46,7 +48,7 @@ function WalletAddressCell({
 
 	return (
 		<div className="flex items-center gap-1">
-			<code className="rounded bg-zinc-100 px-2 py-1 font-mono text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+			<code className="rounded bg-zinc-100 px-2 py-1 font-mono text-sm text-zinc-700 transition-colors dark:bg-zinc-800 dark:text-zinc-300">
 				{truncateAddress(address)}
 			</code>
 			<Button
@@ -55,13 +57,16 @@ function WalletAddressCell({
 				onClick={handleCopy}
 				title={error ? error : copied ? "Copied!" : "Copy address"}
 				disabled={error !== null}
+				className="transition-all hover:scale-110"
+				aria-label={copied ? "Address copied to clipboard" : "Copy address to clipboard"}
+				data-testid="copy-address-button"
 			>
 				{error ? (
-					<AlertCircle className="h-4 w-4 text-red-500" />
+					<AlertCircle className="h-4 w-4 text-red-500" aria-hidden="true" />
 				) : copied ? (
-					<Check className="h-4 w-4 text-green-500" />
+					<Check className="h-4 w-4 text-green-500 animate-in fade-in zoom-in duration-200" aria-hidden="true" />
 				) : (
-					<Copy className="h-4 w-4" />
+					<Copy className="h-4 w-4 transition-colors hover:text-blue-600 dark:hover:text-blue-400" aria-hidden="true" />
 				)}
 			</Button>
 			<ExplorerLink
@@ -91,7 +96,6 @@ export function WalletTable({
 		[wallets],
 	);
 
-	// Handle keyboard navigation
 	const handleKeyDown = useCallback(
 		(event: React.KeyboardEvent<HTMLTableRowElement>, index: number) => {
 			switch (event.key) {
@@ -131,12 +135,10 @@ export function WalletTable({
 		[wallets, router],
 	);
 
-	// Handle row focus
 	const handleRowFocus = useCallback((index: number) => {
 		setFocusedIndex(index);
 	}, []);
 
-	// Handle row blur
 	const handleRowBlur = useCallback(() => {
 		setFocusedIndex(-1);
 	}, []);
@@ -276,7 +278,6 @@ export function WalletTable({
 									className="block p-4 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
 								>
 									<div className="space-y-3">
-										{/* Top row: Address and Badges */}
 										<div className="flex items-start justify-between gap-2">
 											<div className="min-w-0 flex-1">
 												<WalletAddressCell
@@ -292,7 +293,6 @@ export function WalletTable({
 											</div>
 										</div>
 
-										{/* Metadata grid */}
 										<div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
 											<div>
 												<span className="text-zinc-500 dark:text-zinc-400">
