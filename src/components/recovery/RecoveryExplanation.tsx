@@ -18,7 +18,7 @@ export function RecoveryExplanation() {
 	return (
 		<div className="space-y-8">
 			{/* Status Placeholder Section */}
-			<section className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+			<section className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:shadow-none dark:border-zinc-800 dark:bg-zinc-950">
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-3">
 						<div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-full">
@@ -51,7 +51,7 @@ export function RecoveryExplanation() {
 			</section>
 
 			{/* Recovery Explanation Section */}
-			<section className="rounded-xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+			<section className="rounded-xl border border-zinc-200 bg-white p-8 shadow-sm dark:shadow-none dark:border-zinc-800 dark:bg-zinc-950">
 				<div className="space-y-6">
 					<div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
 						<div>
@@ -181,7 +181,7 @@ export function RecoveryExplanation() {
 			</section>
 
 			{/* Warning Messaging Section */}
-			<section className="bg-amber-50 border border-amber-200 rounded-xl p-6 flex items-start gap-4 shadow-sm dark:bg-amber-900/10 dark:border-amber-800">
+			<section className="bg-amber-50 border border-amber-200 rounded-xl p-6 flex items-start gap-4 shadow-sm dark:shadow-none dark:bg-amber-900/10 dark:border-amber-800">
 				<div className="p-2 bg-amber-100 dark:bg-amber-900/20 rounded-full text-amber-600 dark:text-amber-400 shrink-0">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
@@ -228,7 +228,7 @@ export function RecoveryExplanation() {
 			</section>
 
 			{/* Trust-Building Section */}
-			<section className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+			<section className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:shadow-none dark:border-zinc-800 dark:bg-zinc-950">
 				<div className="space-y-4">
 					<h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
 						Security & Transparency

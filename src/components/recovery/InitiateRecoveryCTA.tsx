@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { type UseRecoveryReturn } from "@/hooks/useRecovery";
+import { trackRecoveryEvent } from "@/services/recoveryAnalyticsTracking";
 
 /**
  * Props for the {@link InitiateRecoveryCTA} component.
@@ -87,7 +88,10 @@ export function InitiateRecoveryCTA({ recovery }: InitiateRecoveryCTAProps) {
 						variant="ghost"
 						size="sm"
 						className="mt-3 text-green-700 hover:text-green-900 dark:text-green-400 dark:hover:text-green-200"
-						onClick={resetRecovery}
+						onClick={() => {
+							trackRecoveryEvent("recovery_reset");
+							resetRecovery();
+						}}
 					>
 						Dismiss
 					</Button>
@@ -117,15 +121,25 @@ export function InitiateRecoveryCTA({ recovery }: InitiateRecoveryCTAProps) {
 						want to proceed?
 					</p>
 				</div>
-				<div className="flex gap-3">
+				<div className="flex flex-col gap-3 sm:flex-row">
 					<Button
-						onClick={confirmRecovery}
+						onClick={() => {
+							trackRecoveryEvent("recovery_confirmed");
+							confirmRecovery();
+						}}
 						size="sm"
 						className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600"
 					>
 						Yes, initiate recovery
 					</Button>
-					<Button variant="outline" size="sm" onClick={cancelRecovery}>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => {
+							trackRecoveryEvent("recovery_cancelled");
+							cancelRecovery();
+						}}
+					>
 						Cancel
 					</Button>
 				</div>
@@ -190,7 +204,13 @@ export function InitiateRecoveryCTA({ recovery }: InitiateRecoveryCTAProps) {
 				</div>
 			)}
 
-			<Button onClick={initiateRecovery} disabled={state === "loading"}>
+			<Button
+				onClick={() => {
+					trackRecoveryEvent("recovery_initiated");
+					initiateRecovery();
+				}}
+				disabled={state === "loading"}
+			>
 				Initiate recovery
 			</Button>
 		</div>

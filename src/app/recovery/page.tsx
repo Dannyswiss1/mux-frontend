@@ -8,6 +8,7 @@ import { RecoveryFAQ } from "@/components/recovery/RecoveryFAQ";
 import { RecoveryLoadingState } from "@/components/recovery/RecoveryLoadingState";
 import { Toast } from "@/components/ui/toast";
 import { useRecovery } from "@/hooks/useRecovery";
+import { trackRecoveryEvent } from "@/services/recoveryAnalyticsTracking";
 
 export default function RecoveryPage() {
 	const recovery = useRecovery();
@@ -16,6 +17,11 @@ export default function RecoveryPage() {
 		message: string;
 		variant: "success" | "error";
 	}>({ open: false, message: "", variant: "success" });
+
+	// Track page view on mount (#323)
+	useEffect(() => {
+		trackRecoveryEvent("recovery_view");
+	}, []);
 
 	useEffect(() => {
 		if (recovery.state === "success") {
@@ -36,7 +42,10 @@ export default function RecoveryPage() {
 	// Auto-dismiss toast after 4 seconds
 	useEffect(() => {
 		if (!toast.open) return;
-		const timer = setTimeout(() => setToast((t) => ({ ...t, open: false })), 4000);
+		const timer = setTimeout(
+			() => setToast((t) => ({ ...t, open: false })),
+			4000,
+		);
 		return () => clearTimeout(timer);
 	}, [toast.open]);
 
@@ -44,17 +53,17 @@ export default function RecoveryPage() {
 		<main className="min-h-screen bg-zinc-50 dark:bg-black p-6 md:p-12">
 			<div className="max-w-5xl mx-auto space-y-8">
 				{/* Header */}
-				<header className="flex items-center justify-between">
+				<header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 					<div>
-						<h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+						<h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-3xl">
 							Wallet Recovery
 						</h1>
-						<p className="text-zinc-500 dark:text-zinc-400 mt-1">
+						<p className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm sm:text-base">
 							Learn how invisible wallet recovery works to keep your funds
 							secure
 						</p>
 					</div>
-					<div className="flex gap-3">
+					<div className="flex shrink-0 gap-3">
 						<Link
 							href="/"
 							className="px-4 py-2 text-sm font-medium text-zinc-600 bg-white border border-zinc-200 rounded-lg shadow-xs hover:bg-zinc-50 transition-colors dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
