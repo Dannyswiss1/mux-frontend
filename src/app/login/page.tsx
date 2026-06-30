@@ -20,6 +20,12 @@ interface FieldErrors {
 	password?: string;
 }
 
+/** Tracks which fields the user has interacted with (blurred or submitted). */
+interface TouchedFields {
+	email: boolean;
+	password: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // API call — #325: wire to backend via POST /api/auth/login
 // ---------------------------------------------------------------------------
@@ -179,8 +185,15 @@ function LoginPageContent() {
 		password: "",
 	});
 	const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+	/** Tracks which fields have been touched (blurred or form submitted). */
+	const [touched, setTouched] = useState<TouchedFields>({
+		email: false,
+		password: false,
+	});
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	/** Controls whether the password field shows plain text. */
+	const [showPassword, setShowPassword] = useState(false);
 
 	const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
 
@@ -194,18 +207,49 @@ function LoginPageContent() {
 		}
 	}, [isAuthenticated, isLoading, callbackUrl, router]);
 
+	/**
+	 * Returns a border/background class for a field.
+	 *  - Red when touched and has an error
+	 *  - Green when touched, no error, and has a value (field was corrected)
+	 *  - Default gray otherwise
+	 */
+	function fieldBorderClass(name: keyof FieldErrors): string {
+		if (!touched[name]) return "border-gray-300 bg-white";
+		if (fieldErrors[name]) return "border-red-400 bg-red-50 focus:ring-red-400";
+		if (fields[name]) return "border-green-400 bg-white focus:ring-green-400";
+		return "border-gray-300 bg-white";
+	}
+
 	function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
 		const { name, value } = e.target;
-		setFields((prev) => ({ ...prev, [name]: value }));
-		if (fieldErrors[name as keyof FieldErrors]) {
-			setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
-		}
+		const key = name as keyof LoginFormState;
+		const updated = { ...fields, [key]: value };
+		setFields(updated);
 		setSubmitError(null);
+
+		// Re-validate immediately if the field has already been touched, so a
+		// previously-errored field turns green as soon as the user fixes it.
+		if (touched[key]) {
+			const errors = validate(updated);
+			setFieldErrors((prev) => ({ ...prev, [key]: errors[key] }));
+		}
+	}
+
+	/** Validate the field when focus leaves it (blur validation). */
+	function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+		const { name } = e.target;
+		const key = name as keyof LoginFormState;
+		setTouched((prev) => ({ ...prev, [key]: true }));
+		const errors = validate(fields);
+		setFieldErrors((prev) => ({ ...prev, [key]: errors[key] }));
 	}
 
 	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setSubmitError(null);
+
+		// Mark all fields as touched on submit so errors appear immediately.
+		setTouched({ email: true, password: true });
 
 		const errors = validate(fields);
 		if (Object.keys(errors).length > 0) {
@@ -303,16 +347,15 @@ function LoginPageContent() {
 								autoComplete="email"
 								value={fields.email}
 								onChange={handleChange}
+								onBlur={handleBlur}
 								disabled={isSubmitting}
 								aria-invalid={!!fieldErrors.email}
 								aria-describedby={fieldErrors.email ? "email-error" : undefined}
 								className={[
 									"block w-full rounded-lg border px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400",
-									"focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0",
+									"focus:outline-none focus:ring-2 focus:ring-offset-0",
 									"disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500",
-									fieldErrors.email
-										? "border-red-400 bg-red-50 focus:ring-red-400"
-										: "border-gray-300 bg-white",
+									fieldBorderClass("email"),
 								].join(" ")}
 								placeholder="you@example.com"
 							/>
@@ -336,28 +379,79 @@ function LoginPageContent() {
 							>
 								Password
 							</label>
-							<input
-								id="password"
-								name="password"
-								type="password"
-								autoComplete="current-password"
-								value={fields.password}
-								onChange={handleChange}
-								disabled={isSubmitting}
-								aria-invalid={!!fieldErrors.password}
-								aria-describedby={
-									fieldErrors.password ? "password-error" : undefined
-								}
-								className={[
-									"block w-full rounded-lg border px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400",
-									"focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0",
-									"disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500",
-									fieldErrors.password
-										? "border-red-400 bg-red-50 focus:ring-red-400"
-										: "border-gray-300 bg-white",
-								].join(" ")}
-								placeholder="••••••••"
-							/>
+							<div className="relative">
+								<input
+									id="password"
+									name="password"
+									type={showPassword ? "text" : "password"}
+									autoComplete="current-password"
+									value={fields.password}
+									onChange={handleChange}
+									onBlur={handleBlur}
+									disabled={isSubmitting}
+									aria-invalid={!!fieldErrors.password}
+									aria-describedby={
+										fieldErrors.password ? "password-error" : undefined
+									}
+									className={[
+										"block w-full rounded-lg border px-3 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400",
+										"focus:outline-none focus:ring-2 focus:ring-offset-0",
+										"disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500",
+										fieldBorderClass("password"),
+									].join(" ")}
+									placeholder="••••••••"
+								/>
+								{/* Password visibility toggle */}
+								<button
+									type="button"
+									onClick={() => setShowPassword((prev) => !prev)}
+									aria-label={showPassword ? "Hide password" : "Show password"}
+									aria-pressed={showPassword}
+									tabIndex={0}
+									disabled={isSubmitting}
+									className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
+									data-testid="password-toggle"
+								>
+									{showPassword ? (
+										/* Eye-off icon */
+										<svg
+											className="h-4 w-4"
+											fill="none"
+											viewBox="0 0 24 24"
+											strokeWidth={2}
+											stroke="currentColor"
+											aria-hidden="true"
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
+											/>
+										</svg>
+									) : (
+										/* Eye icon */
+										<svg
+											className="h-4 w-4"
+											fill="none"
+											viewBox="0 0 24 24"
+											strokeWidth={2}
+											stroke="currentColor"
+											aria-hidden="true"
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+											/>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+											/>
+										</svg>
+									)}
+								</button>
+							</div>
 							{fieldErrors.password && (
 								<p
 									id="password-error"
