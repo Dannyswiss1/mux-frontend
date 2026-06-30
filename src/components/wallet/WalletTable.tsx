@@ -277,49 +277,49 @@ export function WalletTable({
 								<Link
 									key={wallet.id}
 									href={`/demo/dashboard/wallets/${wallet.id}`}
-									className="block p-4 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+									className="block p-4 transition-colors hover:bg-zinc-50 active:bg-zinc-100 dark:hover:bg-zinc-800/50 dark:active:bg-zinc-800"
 								>
 									<div className="space-y-3">
-										{/* Top row: Address and Badges */}
-										<div className="flex items-start justify-between gap-2">
-											<div className="min-w-0 flex-1">
-												<WalletAddressCell
-													address={wallet.address}
-													network={wallet.network}
-													onCopySuccess={onCopySuccess}
-													onCopyError={onCopyError}
-												/>
-											</div>
-											<div className="flex flex-shrink-0 gap-2">
-												<NetworkBadge network={wallet.network} />
-												<StatusIndicator status={wallet.status} />
-											</div>
+										{/* Badges row */}
+										<div className="flex items-center gap-2">
+											<NetworkBadge network={wallet.network} />
+											<StatusIndicator status={wallet.status} />
+										</div>
+
+										{/* Address row */}
+										<div className="min-w-0 overflow-hidden">
+											<WalletAddressCell
+												address={wallet.address}
+												network={wallet.network}
+												onCopySuccess={onCopySuccess}
+												onCopyError={onCopyError}
+											/>
 										</div>
 
 										{/* Metadata grid */}
-										<div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+										<div className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-zinc-100 pt-3 text-sm dark:border-zinc-800">
 											<div>
-												<span className="text-zinc-500 dark:text-zinc-400">
+												<p className="text-xs text-zinc-500 dark:text-zinc-400">
 													Balance
-												</span>
-												<p className="font-medium text-zinc-900 dark:text-zinc-50">
+												</p>
+												<p className="mt-0.5 font-medium text-zinc-900 dark:text-zinc-50">
 													{wallet.balance ?? "—"}
 												</p>
 											</div>
 											<div>
-												<span className="text-zinc-500 dark:text-zinc-400">
+												<p className="text-xs text-zinc-500 dark:text-zinc-400">
 													Created
-												</span>
-												<p className="font-medium text-zinc-900 dark:text-zinc-50">
+												</p>
+												<p className="mt-0.5 font-medium text-zinc-900 dark:text-zinc-50">
 													{formatDate(wallet.createdAt)}
 												</p>
 											</div>
 											{wallet.lastActivity && (
 												<div className="col-span-2">
-													<span className="text-zinc-500 dark:text-zinc-400">
+													<p className="text-xs text-zinc-500 dark:text-zinc-400">
 														Last Activity
-													</span>
-													<p className="font-medium text-zinc-900 dark:text-zinc-50">
+													</p>
+													<p className="mt-0.5 font-medium text-zinc-900 dark:text-zinc-50">
 														{formatDate(wallet.lastActivity)}
 													</p>
 												</div>
