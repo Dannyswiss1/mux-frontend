@@ -3,12 +3,11 @@
 import { AlertCircle, Check, Copy, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ExplorerLink } from "@/components/ui/ExplorerLink";
 import { TestnetHint } from "@/components/ui/TestnetHint";
-import { Toast } from "@/components/ui/toast";
 import {
 	Table,
 	TableBody,
@@ -54,14 +53,14 @@ function WalletAddressCell({
 	};
 
 	// Trigger success callback when copied changes to true
-	React.useEffect(() => {
+	useEffect(() => {
 		if (copied && onCopySuccess) {
 			onCopySuccess(address);
 		}
 	}, [copied, address, onCopySuccess]);
 
 	// Trigger error callback when error is set
-	React.useEffect(() => {
+	useEffect(() => {
 		if (error && onCopyError) {
 			onCopyError(error);
 		}
@@ -334,47 +333,6 @@ export function WalletTable({
 				)}
 			</div>
 
-			{/* Toast notification for copy feedback */}
-			<CopyToast 
-				open={toastOpen} 
-				message={toastMessage} 
-				type={toastType}
-			/>
-		</div>
-	);
-}
-
-interface CopyToastProps {
-	open: boolean;
-	message: string;
-	type: "success" | "error";
-}
-
-function CopyToast({ open, message, type }: CopyToastProps) {
-	if (!open) {
-		return null;
-	}
-
-	return (
-		<div 
-			className="fixed right-4 bottom-4 z-50 max-w-sm rounded-lg bg-zinc-950/95 p-4 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur-md animate-in slide-in-from-bottom-5 fade-in duration-300"
-			role="status"
-			aria-live="polite"
-			data-testid="copy-toast"
-		>
-			<div className="flex items-start gap-3">
-				{type === "success" ? (
-					<Check className="h-5 w-5 text-green-400 flex-shrink-0" aria-hidden="true" />
-				) : (
-					<AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" aria-hidden="true" />
-				)}
-				<div className="space-y-1 flex-1 min-w-0">
-					<p className="text-sm font-semibold">
-						{type === "success" ? "Copied!" : "Copy Failed"}
-					</p>
-					<p className="text-sm text-zinc-200 break-words">{message}</p>
-				</div>
-			</div>
 		</div>
 	);
 }

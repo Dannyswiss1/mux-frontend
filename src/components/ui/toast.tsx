@@ -8,6 +8,10 @@ export interface ToastProps {
 	message: string;
 	/** Visual variant controlling icon and colour scheme. Defaults to "success". */
 	variant?: ToastVariant;
+	/** Overrides the default variant title. */
+	title?: string;
+	/** When provided, renders a close button that calls this function. */
+	onClose?: () => void;
 }
 
 const VARIANT_STYLES: Record<
@@ -28,12 +32,19 @@ const VARIANT_STYLES: Record<
 	},
 };
 
-export function Toast({ open, message, variant = "success" }: ToastProps) {
+export function Toast({
+	open,
+	message,
+	variant = "success",
+	title,
+	onClose,
+}: ToastProps) {
 	if (!open) {
 		return null;
 	}
 
-	const { container, title } = VARIANT_STYLES[variant];
+	const { container, title: defaultTitle } = VARIANT_STYLES[variant];
+	const displayTitle = title ?? defaultTitle;
 
 	return (
 		<div
@@ -43,7 +54,19 @@ export function Toast({ open, message, variant = "success" }: ToastProps) {
 			)}
 		>
 			<div role="status" aria-live="polite" className="space-y-1">
-				<p className="text-sm font-semibold">{title}</p>
+				<div className="flex items-center justify-between gap-2">
+					<p className="text-sm font-semibold">{displayTitle}</p>
+					{onClose && (
+						<button
+							type="button"
+							onClick={onClose}
+							aria-label="Close notification"
+							className="shrink-0 text-white/60 transition-colors hover:text-white"
+						>
+							<span aria-hidden="true">×</span>
+						</button>
+					)}
+				</div>
 				<p className="text-sm text-zinc-200">{message}</p>
 			</div>
 		</div>
