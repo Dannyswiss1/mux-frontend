@@ -15,6 +15,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { cn } from "@/lib/utils";
 import { type ApiKey, mockApiKeys } from "@/mock-data/api-keys";
 
 // ---------------------------------------------------------------------------
@@ -117,6 +118,10 @@ export function ApiKeysTable({ initialKeys = mockApiKeys }: ApiKeysTableProps) {
 	const [keys, setKeys] = useState<ApiKey[]>(initialKeys);
 	const [pendingRevokeId, setPendingRevokeId] = useState<string | null>(null);
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [statusFilter, setStatusFilter] = useState<"all" | "Active" | "Revoked">("all");
+
+	const filteredKeys =
+		statusFilter === "all" ? keys : keys.filter((k) => k.status === statusFilter);
 
 	const pendingKey = keys.find((k) => k.id === pendingRevokeId);
 
@@ -196,6 +201,30 @@ export function ApiKeysTable({ initialKeys = mockApiKeys }: ApiKeysTableProps) {
 					</Button>
 				</div>
 
+				{/* Status filter */}
+				<div
+					className="flex items-center gap-1 border-b border-zinc-200 dark:border-zinc-800 px-6 py-3"
+					role="group"
+					aria-label="Filter by status"
+				>
+					{(["all", "Active", "Revoked"] as const).map((f) => (
+						<button
+							key={f}
+							type="button"
+							onClick={() => setStatusFilter(f)}
+							aria-pressed={statusFilter === f}
+							className={cn(
+								"rounded-full px-3 py-1 text-xs font-medium transition-colors",
+								statusFilter === f
+									? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+									: "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200",
+							)}
+						>
+							{f === "all" ? "All" : f}
+						</button>
+					))}
+				</div>
+
 				{/* Empty state */}
 				{keys.length === 0 ? (
 					<div className="p-6">
@@ -211,6 +240,16 @@ export function ApiKeysTable({ initialKeys = mockApiKeys }: ApiKeysTableProps) {
 							}}
 						/>
 					</div>
+				) : filteredKeys.length === 0 ? (
+					<div className="p-6">
+						<EmptyState
+							icon={
+								<Key className="h-10 w-10 text-zinc-400 dark:text-zinc-500" />
+							}
+							title={`No ${statusFilter} keys`}
+							description={`You have no ${statusFilter.toLowerCase()} API keys.`}
+						/>
+					</div>
 				) : (
 					<Table>
 						<TableHeader className="bg-zinc-50/50 dark:bg-zinc-900/50">
@@ -223,7 +262,7 @@ export function ApiKeysTable({ initialKeys = mockApiKeys }: ApiKeysTableProps) {
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{keys.map((key) => (
+							{filteredKeys.map((key) => (
 								<TableRow key={key.id} className="group transition-colors">
 									<TableCell className="font-medium pl-6 text-zinc-900 dark:text-zinc-100">
 										{key.name}
