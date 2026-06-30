@@ -57,8 +57,9 @@ async function authenticateUser(
 		);
 	}
 
-	const user = (data as { user?: { name: string; email: string; role: string } })
-		.user;
+	const user = (
+		data as { user?: { name: string; email: string; role: string } }
+	).user;
 	if (!user) {
 		throw new Error("Unexpected response from authentication server.");
 	}
@@ -261,7 +262,11 @@ function LoginPageContent() {
 		try {
 			const user = await authenticateUser(fields.email, fields.password);
 			signIn(user);
-			addToast({ type: "success", message: "Signed in successfully!", description: `Welcome back, ${user.name}.` });
+			addToast({
+				type: "success",
+				message: "Signed in successfully!",
+				description: `Welcome back, ${user.name}.`,
+			});
 			router.replace(callbackUrl);
 		} catch (err) {
 			const message =
@@ -269,7 +274,11 @@ function LoginPageContent() {
 					? err.message
 					: "Sign in failed. Please check your credentials and try again.";
 			setSubmitError(message);
-			addToast({ type: "error", message: "Sign in failed", description: message });
+			addToast({
+				type: "error",
+				message: "Sign in failed",
+				description: message,
+			});
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -282,14 +291,21 @@ function LoginPageContent() {
 	}
 
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-			<ToastContainer toasts={toasts} onDismiss={dismissToast} position="top-right" />
+		<div className="flex min-h-screen items-center justify-center bg-gray-50 px-3 py-4 sm:px-4 md:px-0">
+			<ToastContainer
+				toasts={toasts}
+				onDismiss={dismissToast}
+				position="bottom-right"
+				// Responsive position: use "top-right" on md and up
+				className="md:fixed md:top-6 md:right-6"
+			/>
 			<div className="w-full max-w-md">
 				{/* Logo / brand */}
-				<div className="mb-8 text-center">
-					<div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600">
+				<div className="mb-6 text-center sm:mb-8">
+					{/* Responsive logo size: smaller on mobile (h-10 w-10), standard on desktop (h-12 w-12) */}
+					<div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 sm:mb-4 sm:h-12 sm:w-12 sm:rounded-xl">
 						<svg
-							className="h-6 w-6 text-white"
+							className="h-5 w-5 text-white sm:h-6 sm:w-6"
 							fill="none"
 							viewBox="0 0 24 24"
 							strokeWidth={2}
@@ -303,17 +319,18 @@ function LoginPageContent() {
 							/>
 						</svg>
 					</div>
-					<h1 className="text-2xl font-bold tracking-tight text-gray-900">
+					{/* Responsive heading: text-xl on mobile, text-2xl on desktop */}
+					<h1 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
 						Mux Protocol
 					</h1>
-					<p className="mt-1 text-sm text-gray-500">
+					<p className="mt-1 text-xs text-gray-500 sm:text-sm">
 						Sign in to your developer console
 					</p>
 				</div>
 
 				{/* Login card */}
-				<div className="rounded-2xl border border-gray-200 bg-white px-8 py-10 shadow-sm">
-					<h2 className="mb-6 text-lg font-semibold text-gray-900">Sign in</h2>
+				<div className="rounded-xl border border-gray-200 bg-white px-4 py-6 shadow-sm sm:rounded-2xl sm:px-8 sm:py-10">
+					<h2 className="mb-4 text-base font-semibold text-gray-900 sm:mb-6 sm:text-lg">Sign in</h2>
 
 					{/* #326: Empty/welcome state — shown before the user types anything */}
 					{isPristine && !submitError && <LoginWelcomeHint />}
@@ -333,10 +350,10 @@ function LoginPageContent() {
 						data-testid="login-form"
 					>
 						{/* Email field */}
-						<div className="mb-4">
+						<div className="mb-3 sm:mb-4">
 							<label
 								htmlFor="email"
-								className="mb-1.5 block text-sm font-medium text-gray-700"
+								className="mb-1 block text-xs font-medium text-gray-700 sm:mb-1.5 sm:text-sm"
 							>
 								Email address
 							</label>
@@ -352,7 +369,7 @@ function LoginPageContent() {
 								aria-invalid={!!fieldErrors.email}
 								aria-describedby={fieldErrors.email ? "email-error" : undefined}
 								className={[
-									"block w-full rounded-lg border px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400",
+									"block w-full rounded-lg border px-2.5 py-2 text-xs text-gray-900 placeholder-gray-400 sm:px-3 sm:py-2.5 sm:text-sm",
 									"focus:outline-none focus:ring-2 focus:ring-offset-0",
 									"disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500",
 									fieldBorderClass("email"),
@@ -363,7 +380,7 @@ function LoginPageContent() {
 								<p
 									id="email-error"
 									role="alert"
-									className="mt-1.5 text-xs text-red-600"
+									className="mt-1 text-xs text-red-600"
 									data-testid="email-error"
 								>
 									{fieldErrors.email}
@@ -372,10 +389,10 @@ function LoginPageContent() {
 						</div>
 
 						{/* Password field */}
-						<div className="mb-6">
+						<div className="mb-4 sm:mb-6">
 							<label
 								htmlFor="password"
-								className="mb-1.5 block text-sm font-medium text-gray-700"
+								className="mb-1 block text-xs font-medium text-gray-700 sm:mb-1.5 sm:text-sm"
 							>
 								Password
 							</label>
@@ -394,7 +411,7 @@ function LoginPageContent() {
 										fieldErrors.password ? "password-error" : undefined
 									}
 									className={[
-										"block w-full rounded-lg border px-3 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400",
+										"block w-full rounded-lg border px-2.5 py-2 pr-9 text-xs text-gray-900 placeholder-gray-400 sm:px-3 sm:py-2.5 sm:pr-10 sm:text-sm",
 										"focus:outline-none focus:ring-2 focus:ring-offset-0",
 										"disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500",
 										fieldBorderClass("password"),
@@ -409,13 +426,13 @@ function LoginPageContent() {
 									aria-pressed={showPassword}
 									tabIndex={0}
 									disabled={isSubmitting}
-									className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
+									className="absolute inset-y-0 right-0 flex items-center pr-2 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed sm:pr-3"
 									data-testid="password-toggle"
 								>
 									{showPassword ? (
 										/* Eye-off icon */
 										<svg
-											className="h-4 w-4"
+											className="h-3.5 w-3.5 sm:h-4 sm:w-4"
 											fill="none"
 											viewBox="0 0 24 24"
 											strokeWidth={2}
@@ -431,7 +448,7 @@ function LoginPageContent() {
 									) : (
 										/* Eye icon */
 										<svg
-											className="h-4 w-4"
+											className="h-3.5 w-3.5 sm:h-4 sm:w-4"
 											fill="none"
 											viewBox="0 0 24 24"
 											strokeWidth={2}
@@ -456,7 +473,7 @@ function LoginPageContent() {
 								<p
 									id="password-error"
 									role="alert"
-									className="mt-1.5 text-xs text-red-600"
+									className="mt-1 text-xs text-red-600"
 									data-testid="password-error"
 								>
 									{fieldErrors.password}
@@ -469,8 +486,7 @@ function LoginPageContent() {
 							type="submit"
 							disabled={isSubmitting}
 							className={[
-								"flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5",
-								"text-sm font-semibold text-white transition-colors",
+								"flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-white transition-colors sm:px-4 sm:py-2.5 sm:text-sm",
 								"focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
 								"disabled:cursor-not-allowed disabled:opacity-60",
 								isSubmitting ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700",
@@ -480,7 +496,7 @@ function LoginPageContent() {
 							{isSubmitting ? (
 								<>
 									<svg
-										className="h-4 w-4 animate-spin"
+										className="h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4"
 										fill="none"
 										viewBox="0 0 24 24"
 										aria-hidden="true"
@@ -509,7 +525,7 @@ function LoginPageContent() {
 				</div>
 
 				{/* Footer note */}
-				<p className="mt-6 text-center text-xs text-gray-400">
+				<p className="mt-4 text-center text-xs text-gray-400 sm:mt-6">
 					Mux Protocol developer console — internal use only
 				</p>
 			</div>
