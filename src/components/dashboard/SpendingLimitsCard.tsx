@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Toast } from "@/components/ui/toast";
+import { trackSpendingLimitsEvent } from "@/services/spendingLimitsTracking";
 import type { SpendingLimitsResponse } from "@/app/api/spending-limits/route";
 
 // Allow pressing Enter in an input to trigger save, Escape to blur.
@@ -52,36 +53,131 @@ function validateLimit(value: string): string | null {
 	return null;
 }
 
+// ---------------------------------------------------------------------------
+// CopyButton — unchanged helper component
+// ---------------------------------------------------------------------------
+
+function CopyButton({ value, label }: { value: string; label: string }) {
+	const [copied, setCopied] = useState(false);
+	const timeoutRef = useRef<number | null>(null);
+
+	const handleCopy = useCallback(async () => {
+		try {
+			await navigator.clipboard.writeText(value);
+			setCopied(true);
+			if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+			timeoutRef.current = window.setTimeout(
+				() => setCopied(false),
+				COPY_RESET_MS,
+			);
+		} catch {
+			// ignore clipboard errors
+		}
+	}, [value]);
+
+	useEffect(() => {
+		return () => {
+			if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+		};
+	}, []);
+
+	return (
+		<button
+			type="button"
+			aria-label={`Copy ${label}`}
+			onClick={handleCopy}
+			className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+		>
+			{copied ? (
+				<Check className="size-4 text-green-500" />
+			) : (
+				<Clipboard className="size-4" />
+			)}
+		</button>
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
+
 interface SpendingLimitsCardProps {
 	loading?: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 
 export function SpendingLimitsCard({
 	loading = false,
 }: SpendingLimitsCardProps) {
 	const [dailyLimit, setDailyLimit] = useState("5000");
 	const [transactionLimit, setTransactionLimit] = useState("1000");
+	const [todayUsage, setTodayUsage] = useState(0);
 	const [dailyError, setDailyError] = useState<string | null>(null);
 	const [txError, setTxError] = useState<string | null>(null);
 	const [toastOpen, setToastOpen] = useState(false);
-	const [toastVariant, setToastVariant] = useState<"success" | "error">("success");
+	const [toastVariant, setToastVariant] = useState<"success" | "error">(
+		"success",
+	);
 	const [toastMessage, setToastMessage] = useState("Spending limits saved.");
+	const [saveInProgress, setSaveInProgress] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	const toastTimeoutRef = useRef<number | null>(null);
 
-	// Fetch limits from API on mount
+	// Fetch limits from API on mount, falling back to localStorage
 	useEffect(() => {
-		try {
-			const stored = window.localStorage.getItem(STORAGE_KEY);
-			if (!stored) return;
-			const parsed = JSON.parse(stored);
-			if (typeof parsed?.dailyLimit === "number" && isFinite(parsed.dailyLimit)) {
-				setDailyLimit(String(parsed.dailyLimit));
+		async function loadLimits() {
+			try {
+				const res = await fetch("/api/spending-limits");
+				if (res.ok) {
+					const json: SpendingLimitsResponse = await res.json();
+					setDailyLimit(String(json.limits.dailyLimit));
+					setTransactionLimit(String(json.limits.transactionLimit));
+					setTodayUsage(json.todayUsage);
+					trackSpendingLimitsEvent("spending_limits_loaded", {
+						source: "api",
+						dailyLimit: json.limits.dailyLimit,
+						transactionLimit: json.limits.transactionLimit,
+						todayUsage: json.todayUsage,
+					});
+					return;
+				}
+			} catch {
+				// API unavailable — fall through to localStorage
 			}
-			if (typeof parsed?.transactionLimit === "number" && isFinite(parsed.transactionLimit)) {
-				setTransactionLimit(String(parsed.transactionLimit));
+
+			// localStorage fallback
+			try {
+				const stored = window.localStorage.getItem(STORAGE_KEY);
+				if (!stored) return;
+				const parsed = JSON.parse(stored);
+				if (
+					typeof parsed?.dailyLimit === "number" &&
+					isFinite(parsed.dailyLimit)
+				) {
+					setDailyLimit(String(parsed.dailyLimit));
+				}
+				if (
+					typeof parsed?.transactionLimit === "number" &&
+					isFinite(parsed.transactionLimit)
+				) {
+					setTransactionLimit(String(parsed.transactionLimit));
+				}
+				trackSpendingLimitsEvent("spending_limits_loaded", {
+					source: "localStorage",
+					dailyLimit: parsed?.dailyLimit,
+					transactionLimit: parsed?.transactionLimit,
+				});
+			} catch {
+				// ignore malformed localStorage data
 			}
 		}
+
+		loadLimits();
+
 		return () => {
 			if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
 		};
@@ -98,25 +194,107 @@ export function SpendingLimitsCard({
 		setToastMessage(message);
 		setToastOpen(true);
 		if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
-		toastTimeoutRef.current = window.setTimeout(() => setToastOpen(false), 3000);
+		toastTimeoutRef.current = window.setTimeout(
+			() => setToastOpen(false),
+			3000,
+		);
 	};
 
-	const handleSave = () => {
+	const handleSave = async () => {
+		// Validate both inputs before saving
+		const dErr = validateLimit(dailyLimit);
+		const tErr = validateLimit(transactionLimit);
+		if (dErr) {
+			setDailyError(dErr);
+			trackSpendingLimitsEvent("spending_limits_validation_error", {
+				field: "dailyLimit",
+				value: dailyLimit,
+				error: dErr,
+			});
+		}
+		if (tErr) {
+			setTxError(tErr);
+			trackSpendingLimitsEvent("spending_limits_validation_error", {
+				field: "transactionLimit",
+				value: transactionLimit,
+				error: tErr,
+			});
+		}
+		if (dErr || tErr) return;
+
+		setSaveInProgress(true);
+		setError(null);
+
+		const dailyVal = safeSaveValue(dailyLimit);
+		const txVal = safeSaveValue(transactionLimit);
+
 		try {
+			// Persist to localStorage regardless of API success
 			window.localStorage.setItem(
 				STORAGE_KEY,
-				JSON.stringify({
-					dailyLimit: safeSaveValue(dailyLimit),
-					transactionLimit: safeSaveValue(transactionLimit),
-				}),
+				JSON.stringify({ dailyLimit: dailyVal, transactionLimit: txVal }),
 			);
+
+			// Attempt to sync to the backend
+			try {
+				const res = await fetch("/api/spending-limits", {
+					method: "PUT",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({
+						dailyLimit: dailyVal,
+						transactionLimit: txVal,
+					}),
+				});
+				if (!res.ok) {
+					const body = await res.json().catch(() => ({}));
+					throw new Error((body as { error?: string }).error ?? res.statusText);
+				}
+			} catch (apiErr) {
+				// API errors are non-fatal: localStorage already has the data.
+				// Log but don't surface to the user as an error.
+				if (process.env.NODE_ENV === "development") {
+					// biome-ignore lint/suspicious/noConsoleLog: allowed in dev
+					console.log(
+						"[SpendingLimitsCard] API sync failed (non-fatal):",
+						apiErr,
+					);
+				}
+			}
+
+			trackSpendingLimitsEvent("spending_limits_saved", {
+				dailyLimit: dailyVal,
+				transactionLimit: txVal,
+			});
 			showToast("success", "Spending limits saved.");
 		} catch {
+			trackSpendingLimitsEvent("spending_limits_save_failed", {
+				dailyLimit: dailyVal,
+				transactionLimit: txVal,
+			});
+			setError("Failed to save. Please try again.");
 			showToast("error", "Failed to save. Please try again.");
+		} finally {
+			setSaveInProgress(false);
 		}
 	};
 
 	const handleInputKeyDown = useInputKeyNav(handleSave);
+
+	const handleDailyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setDailyLimit(e.target.value);
+		setDailyError(null);
+		trackSpendingLimitsEvent("spending_limits_daily_changed", {
+			value: e.target.value,
+		});
+	};
+
+	const handleTransactionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setTransactionLimit(e.target.value);
+		setTxError(null);
+		trackSpendingLimitsEvent("spending_limits_transaction_changed", {
+			value: e.target.value,
+		});
+	};
 
 	return (
 		<>
@@ -192,9 +370,12 @@ export function SpendingLimitsCard({
 									max={MAX_LIMIT}
 									step={1}
 									value={dailyLimit}
-									onChange={(e) => { setDailyLimit(e.target.value); setDailyError(null); }}
+									onChange={handleDailyChange}
+									onKeyDown={handleInputKeyDown}
 									aria-invalid={dailyError !== null}
-									aria-describedby={dailyError ? "daily-limit-error" : undefined}
+									aria-describedby={
+										dailyError ? "daily-limit-error" : undefined
+									}
 									className={`w-full rounded-lg border bg-zinc-50 py-2 pl-7 pr-3 text-sm transition-all focus:outline-none focus:ring-2 dark:bg-zinc-900 ${
 										dailyError
 											? "border-red-400 focus:ring-red-500/20 dark:border-red-500"
@@ -204,11 +385,17 @@ export function SpendingLimitsCard({
 								/>
 							</div>
 							{dailyError ? (
-								<p id="daily-limit-error" role="alert" className="text-xs text-red-600 dark:text-red-400">
+								<p
+									id="daily-limit-error"
+									role="alert"
+									className="text-xs text-red-600 dark:text-red-400"
+								>
 									{dailyError}
 								</p>
 							) : (
-								<p className="text-xs text-zinc-500">Maximum amount you can spend per day.</p>
+								<p className="text-xs text-zinc-500">
+									Maximum amount you can spend per day.
+								</p>
 							)}
 						</div>
 
@@ -221,7 +408,10 @@ export function SpendingLimitsCard({
 									<Wallet className="size-4" />
 									Per-Transaction Limit
 								</label>
-								<CopyButton value={transactionLimit} label="transaction limit" />
+								<CopyButton
+									value={transactionLimit}
+									label="transaction limit"
+								/>
 							</div>
 							<div className="relative">
 								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
@@ -234,7 +424,8 @@ export function SpendingLimitsCard({
 									max={MAX_LIMIT}
 									step={1}
 									value={transactionLimit}
-									onChange={(e) => { setTransactionLimit(e.target.value); setTxError(null); }}
+									onChange={handleTransactionChange}
+									onKeyDown={handleInputKeyDown}
 									aria-invalid={txError !== null}
 									aria-describedby={txError ? "tx-limit-error" : undefined}
 									className={`w-full rounded-lg border bg-zinc-50 py-2 pl-7 pr-3 text-sm transition-all focus:outline-none focus:ring-2 dark:bg-zinc-900 ${
@@ -246,11 +437,17 @@ export function SpendingLimitsCard({
 								/>
 							</div>
 							{txError ? (
-								<p id="tx-limit-error" role="alert" className="text-xs text-red-600 dark:text-red-400">
+								<p
+									id="tx-limit-error"
+									role="alert"
+									className="text-xs text-red-600 dark:text-red-400"
+								>
 									{txError}
 								</p>
 							) : (
-								<p className="text-xs text-zinc-500">Maximum cap for a single transaction.</p>
+								<p className="text-xs text-zinc-500">
+									Maximum cap for a single transaction.
+								</p>
 							)}
 						</div>
 					</div>
@@ -268,9 +465,7 @@ export function SpendingLimitsCard({
 
 				<div className="flex flex-col sm:flex-row items-end justify-between gap-3 bg-zinc-50 px-6 py-4 dark:bg-zinc-900/50">
 					{error && (
-						<p className="text-xs text-red-600 leading-relaxed">
-							{error}
-						</p>
+						<p className="text-xs text-red-600 leading-relaxed">{error}</p>
 					)}
 					<Button
 						className="rounded-full px-6 shrink-0"

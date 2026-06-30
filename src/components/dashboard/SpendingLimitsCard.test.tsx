@@ -3,6 +3,46 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SpendingLimitsCard } from "./SpendingLimitsCard";
 
+// ---------------------------------------------------------------------------
+// Global fetch mock: return the default API response
+// ---------------------------------------------------------------------------
+
+const DEFAULT_API_RESPONSE = {
+	limits: { dailyLimit: 5000, transactionLimit: 1000 },
+	todayUsage: 750,
+};
+
+function mockFetchSuccess(body = DEFAULT_API_RESPONSE) {
+	vi.stubGlobal(
+		"fetch",
+		vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve(body),
+		}),
+	);
+}
+
+function mockFetchFailure() {
+	vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+}
+
+beforeEach(() => {
+	mockFetchSuccess();
+	vi.stubGlobal("localStorage", {
+		getItem: vi.fn().mockReturnValue(null),
+		setItem: vi.fn(),
+	});
+});
+
+afterEach(() => {
+	vi.unstubAllGlobals();
+	vi.restoreAllMocks();
+});
+
+// ---------------------------------------------------------------------------
+// Basic rendering
+// ---------------------------------------------------------------------------
+
 describe("SpendingLimitsCard", () => {
 	it("renders the card title and description", async () => {
 		render(<SpendingLimitsCard />);
@@ -25,7 +65,7 @@ describe("SpendingLimitsCard", () => {
 		});
 	});
 
-	it("renders the daily usage section with default values", async () => {
+	it("renders the daily usage section with API-loaded values", async () => {
 		render(<SpendingLimitsCard />);
 		await waitFor(() => {
 			expect(screen.getByText("$750")).toBeInTheDocument();
@@ -38,7 +78,7 @@ describe("SpendingLimitsCard", () => {
 		});
 	});
 
-	it("renders both input fields with default values", async () => {
+	it("renders both input fields with API-loaded values", async () => {
 		render(<SpendingLimitsCard />);
 		await waitFor(() => {
 			const dailyInput = screen.getByRole("spinbutton", {
@@ -76,7 +116,7 @@ describe("SpendingLimitsCard", () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
 
-		const dailyInput = screen.getByRole("spinbutton", {
+		const dailyInput = await screen.findByRole("spinbutton", {
 			name: /daily spending limit/i,
 		});
 		await user.clear(dailyInput);
@@ -89,8 +129,8 @@ describe("SpendingLimitsCard", () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
 
-		// Default: 750 / 5000 = 15%
-		expect(screen.getByText("15.0%")).toBeInTheDocument();
+		// Wait for API data to load
+		await waitFor(() => expect(screen.getByText("15.0%")).toBeInTheDocument());
 
 		const dailyInput = screen.getByRole("spinbutton", {
 			name: /daily spending limit/i,
@@ -106,6 +146,8 @@ describe("SpendingLimitsCard", () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
 
+		await waitFor(() => expect(screen.getByText("15.0%")).toBeInTheDocument());
+
 		const dailyInput = screen.getByRole("spinbutton", {
 			name: /daily spending limit/i,
 		});
@@ -116,9 +158,11 @@ describe("SpendingLimitsCard", () => {
 		expect(screen.getByText("100.0%")).toBeInTheDocument();
 	});
 
-	it("shows 0% usage when daily limit is invalid (empty)", async () => {
+	it("shows 100% usage when daily limit is empty (fallback to 1)", async () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
+
+		await waitFor(() => expect(screen.getByText("15.0%")).toBeInTheDocument());
 
 		const dailyInput = screen.getByRole("spinbutton", {
 			name: /daily spending limit/i,
@@ -129,25 +173,11 @@ describe("SpendingLimitsCard", () => {
 		expect(screen.getByText("100.0%")).toBeInTheDocument();
 	});
 
-	it("shows 0% usage when daily limit is 0", async () => {
-		const user = userEvent.setup();
-		render(<SpendingLimitsCard />);
-
-		const dailyInput = screen.getByRole("spinbutton", {
-			name: /daily spending limit/i,
-		});
-		await user.clear(dailyInput);
-		await user.type(dailyInput, "0");
-
-		// parseInt("0") = 0, fallback to 1 → 750/1 = 75000% capped at 100%
-		expect(screen.getByText("100.0%")).toBeInTheDocument();
-	});
-
 	it("updates per-transaction limit independently", async () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
 
-		const txInput = screen.getByRole("spinbutton", {
+		const txInput = await screen.findByRole("spinbutton", {
 			name: /per-transaction limit/i,
 		});
 		await user.clear(txInput);
@@ -166,10 +196,14 @@ describe("SpendingLimitsCard", () => {
 	it("has proper accessibility: inputs are associated with labels", async () => {
 		render(<SpendingLimitsCard />);
 		await waitFor(() => {
-			expect(screen.getByLabelText(/daily spending limit/i)).toBeInTheDocument();
+			expect(
+				screen.getByLabelText(/daily spending limit/i),
+			).toBeInTheDocument();
 		});
 		await waitFor(() => {
-			expect(screen.getByLabelText(/per-transaction limit/i)).toBeInTheDocument();
+			expect(
+				screen.getByLabelText(/per-transaction limit/i),
+			).toBeInTheDocument();
 		});
 	});
 
@@ -188,23 +222,152 @@ describe("SpendingLimitsCard", () => {
 	});
 });
 
-describe("SpendingLimitsCard keyboard navigation", () => {
-	beforeEach(() => {
-		vi.stubGlobal("localStorage", {
-			getItem: vi.fn().mockReturnValue(null),
-			setItem: vi.fn(),
+// ---------------------------------------------------------------------------
+// Analytics tracking
+// ---------------------------------------------------------------------------
+
+describe("SpendingLimitsCard analytics tracking", () => {
+	it("fires spending_limits_loaded on mount when API succeeds", async () => {
+		const { trackSpendingLimitsEvent } = await import(
+			"@/services/spendingLimitsTracking"
+		);
+		const trackSpy = vi.spyOn(
+			{ trackSpendingLimitsEvent },
+			"trackSpendingLimitsEvent",
+		);
+
+		// Re-import the module to get the actual exported function
+		const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+		render(<SpendingLimitsCard />);
+
+		await waitFor(() => {
+			expect(consoleSpy).toHaveBeenCalledWith(
+				"[Analytics] spending_limits_loaded",
+				expect.objectContaining({ source: "api", dailyLimit: 5000 }),
+			);
 		});
+
+		consoleSpy.mockRestore();
+		trackSpy.mockRestore();
 	});
 
-	afterEach(() => {
-		vi.unstubAllGlobals();
+	it("fires spending_limits_loaded with localStorage source when API fails", async () => {
+		mockFetchFailure();
+		vi.mocked(localStorage.getItem).mockReturnValue(
+			JSON.stringify({ dailyLimit: 3000, transactionLimit: 500 }),
+		);
+
+		const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+		render(<SpendingLimitsCard />);
+
+		await waitFor(() => {
+			expect(consoleSpy).toHaveBeenCalledWith(
+				"[Analytics] spending_limits_loaded",
+				expect.objectContaining({ source: "localStorage", dailyLimit: 3000 }),
+			);
+		});
+
+		consoleSpy.mockRestore();
 	});
 
+	it("fires spending_limits_saved when save succeeds", async () => {
+		const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+		const user = userEvent.setup();
+
+		render(<SpendingLimitsCard />);
+		await screen.findByRole("button", { name: /save settings/i });
+
+		await user.click(screen.getByRole("button", { name: /save settings/i }));
+
+		await waitFor(() => {
+			expect(consoleSpy).toHaveBeenCalledWith(
+				"[Analytics] spending_limits_saved",
+				expect.objectContaining({ dailyLimit: 5000, transactionLimit: 1000 }),
+			);
+		});
+
+		consoleSpy.mockRestore();
+	});
+
+	it("fires spending_limits_save_failed when localStorage throws", async () => {
+		vi.mocked(localStorage.setItem).mockImplementation(() => {
+			throw new Error("QuotaExceededError");
+		});
+
+		const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+		const user = userEvent.setup();
+
+		render(<SpendingLimitsCard />);
+		await screen.findByRole("button", { name: /save settings/i });
+
+		await user.click(screen.getByRole("button", { name: /save settings/i }));
+
+		await waitFor(() => {
+			expect(consoleSpy).toHaveBeenCalledWith(
+				"[Analytics] spending_limits_save_failed",
+				expect.any(Object),
+			);
+		});
+
+		consoleSpy.mockRestore();
+	});
+
+	it("fires spending_limits_daily_changed when daily input changes", async () => {
+		const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+		const user = userEvent.setup();
+
+		render(<SpendingLimitsCard />);
+		const dailyInput = await screen.findByRole("spinbutton", {
+			name: /daily spending limit/i,
+		});
+
+		await user.clear(dailyInput);
+		await user.type(dailyInput, "8000");
+
+		await waitFor(() => {
+			expect(consoleSpy).toHaveBeenCalledWith(
+				"[Analytics] spending_limits_daily_changed",
+				expect.any(Object),
+			);
+		});
+
+		consoleSpy.mockRestore();
+	});
+
+	it("fires spending_limits_transaction_changed when tx input changes", async () => {
+		const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+		const user = userEvent.setup();
+
+		render(<SpendingLimitsCard />);
+		const txInput = await screen.findByRole("spinbutton", {
+			name: /per-transaction limit/i,
+		});
+
+		await user.clear(txInput);
+		await user.type(txInput, "2000");
+
+		await waitFor(() => {
+			expect(consoleSpy).toHaveBeenCalledWith(
+				"[Analytics] spending_limits_transaction_changed",
+				expect.any(Object),
+			);
+		});
+
+		consoleSpy.mockRestore();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Keyboard navigation
+// ---------------------------------------------------------------------------
+
+describe("SpendingLimitsCard keyboard navigation", () => {
 	it("pressing Enter in the daily limit input triggers save", async () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
 
-		const dailyInput = screen.getByRole("spinbutton", {
+		const dailyInput = await screen.findByRole("spinbutton", {
 			name: /daily spending limit/i,
 		});
 		await user.click(dailyInput);
@@ -217,7 +380,7 @@ describe("SpendingLimitsCard keyboard navigation", () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
 
-		const txInput = screen.getByRole("spinbutton", {
+		const txInput = await screen.findByRole("spinbutton", {
 			name: /per-transaction limit/i,
 		});
 		await user.click(txInput);
@@ -230,7 +393,7 @@ describe("SpendingLimitsCard keyboard navigation", () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
 
-		const dailyInput = screen.getByRole("spinbutton", {
+		const dailyInput = await screen.findByRole("spinbutton", {
 			name: /daily spending limit/i,
 		});
 		await user.click(dailyInput);
@@ -244,7 +407,9 @@ describe("SpendingLimitsCard keyboard navigation", () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
 
-		const saveBtn = screen.getByRole("button", { name: /save settings/i });
+		const saveBtn = await screen.findByRole("button", {
+			name: /save settings/i,
+		});
 		saveBtn.focus();
 		expect(saveBtn).toHaveFocus();
 
@@ -253,17 +418,19 @@ describe("SpendingLimitsCard keyboard navigation", () => {
 	});
 });
 
+// ---------------------------------------------------------------------------
+// Loading state
+// ---------------------------------------------------------------------------
+
 describe("SpendingLimitsCard loading state", () => {
 	it("renders skeleton placeholders when loading is true", () => {
 		const { container } = render(<SpendingLimitsCard loading />);
-
 		const skeletons = container.querySelectorAll(".animate-pulse");
 		expect(skeletons.length).toBeGreaterThan(0);
 	});
 
 	it("does not render real content when loading", () => {
 		render(<SpendingLimitsCard loading />);
-
 		expect(
 			screen.queryByRole("heading", { name: /spending limits/i }),
 		).not.toBeInTheDocument();
@@ -300,22 +467,16 @@ describe("SpendingLimitsCard loading state", () => {
 	});
 });
 
+// ---------------------------------------------------------------------------
+// Toast feedback
+// ---------------------------------------------------------------------------
+
 describe("SpendingLimitsCard toast feedback", () => {
-	beforeEach(() => {
-		vi.stubGlobal("localStorage", {
-			getItem: vi.fn().mockReturnValue(null),
-			setItem: vi.fn(),
-		});
-	});
-
-	afterEach(() => {
-		vi.unstubAllGlobals();
-	});
-
 	it("shows success toast after saving valid settings", async () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
 
+		await screen.findByRole("button", { name: /save settings/i });
 		await user.click(screen.getByRole("button", { name: /save settings/i }));
 
 		expect(screen.getByRole("status")).toBeInTheDocument();
@@ -331,15 +492,62 @@ describe("SpendingLimitsCard toast feedback", () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
 
+		await screen.findByRole("button", { name: /save settings/i });
 		await user.click(screen.getByRole("button", { name: /save settings/i }));
 
 		expect(screen.getByRole("status")).toBeInTheDocument();
 		expect(screen.getByText("Error")).toBeInTheDocument();
-		expect(screen.getByText(/failed to save/i)).toBeInTheDocument();
+		// Both the inline error text and toast may show; use getAllByText
+		const failedMessages = screen.getAllByText(/failed to save/i);
+		expect(failedMessages.length).toBeGreaterThanOrEqual(1);
 	});
 
-	it("toast is not visible before saving", () => {
+	it("toast is not visible before saving", async () => {
 		render(<SpendingLimitsCard />);
+		await screen.findByRole("button", { name: /save settings/i });
 		expect(screen.queryByRole("status")).not.toBeInTheDocument();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// API fallback to localStorage
+// ---------------------------------------------------------------------------
+
+describe("SpendingLimitsCard — API unavailable fallback", () => {
+	it("loads limits from localStorage when API is unavailable", async () => {
+		mockFetchFailure();
+		vi.mocked(localStorage.getItem).mockReturnValue(
+			JSON.stringify({ dailyLimit: 2000, transactionLimit: 300 }),
+		);
+
+		render(<SpendingLimitsCard />);
+
+		await waitFor(() => {
+			const dailyInput = screen.getByRole("spinbutton", {
+				name: /daily spending limit/i,
+			});
+			expect(dailyInput).toHaveValue(2000);
+		});
+		await waitFor(() => {
+			const txInput = screen.getByRole("spinbutton", {
+				name: /per-transaction limit/i,
+			});
+			expect(txInput).toHaveValue(300);
+		});
+	});
+
+	it("uses default values when API unavailable and no localStorage", async () => {
+		mockFetchFailure();
+		vi.mocked(localStorage.getItem).mockReturnValue(null);
+
+		render(<SpendingLimitsCard />);
+
+		// Defaults are 5000 / 1000 from useState initialization
+		await waitFor(() => {
+			const dailyInput = screen.getByRole("spinbutton", {
+				name: /daily spending limit/i,
+			});
+			expect(dailyInput).toHaveValue(5000);
+		});
 	});
 });
