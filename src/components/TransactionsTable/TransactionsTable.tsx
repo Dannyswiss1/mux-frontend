@@ -205,6 +205,14 @@ export default function TransactionsTable({
 		}
 	};
 
+	const _handleItemsPerPageChange = (newSize: number) => {
+		setItemsPerPage(newSize);
+		setCurrentPage(1);
+		trackTransactionEvent("transactions_items_per_page", {
+			itemsPerPage: newSize,
+		});
+	};
+
 	const clearFilters = () => {
 		setSearch("");
 		setStatusFilter("all");
@@ -225,6 +233,7 @@ export default function TransactionsTable({
 	if (loading) {
 		return (
 			<div
+				role="status"
 				className="w-full max-w-6xl mx-auto p-4 md:p-8 space-y-6 font-sans"
 				aria-busy="true"
 				aria-label="Loading transactions"
@@ -233,7 +242,6 @@ export default function TransactionsTable({
 				<div className="h-8 w-48 rounded bg-slate-200 animate-pulse" />
 				<div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden divide-y divide-slate-100">
 					{Array.from({ length: 5 }).map((_, i) => (
-						// biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
 						<div key={i} className="p-4 flex gap-4">
 							<div className="h-4 flex-1 rounded bg-slate-100 animate-pulse" />
 							<div className="h-4 w-24 rounded bg-slate-100 animate-pulse" />
@@ -459,10 +467,34 @@ export default function TransactionsTable({
 												className="col-span-2 font-mono text-xs text-slate-600 truncate"
 												title={tx.from}
 											>
+												{truncate(tx.hash, 8, 6)}
+											</span>
+										</div>
+										<div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+											<StatusPill status={tx.status} />
+											<NetworkBadge network={tx.network} />
+										</div>
+									</div>
+
+									{/* From / To row */}
+									<div className="flex gap-3 mb-2">
+										<div className="flex-1 min-w-0 bg-slate-50 rounded-lg p-2.5">
+											<span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
+												From
+											</span>
+											<p
+												className="font-mono text-xs text-slate-700 truncate"
+												title={tx.from}
+											>
 												{truncate(tx.from)}
-											</div>
-											<div
-												className="col-span-2 font-mono text-xs text-slate-600 truncate"
+											</p>
+										</div>
+										<div className="flex-1 min-w-0 bg-slate-50 rounded-lg p-2.5">
+											<span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-0.5">
+												To
+											</span>
+											<p
+												className="font-mono text-xs text-slate-700 truncate"
 												title={tx.to}
 											>
 												{truncate(tx.to)}
@@ -472,6 +504,30 @@ export default function TransactionsTable({
 													minimumFractionDigits: 2,
 													maximumFractionDigits: 7,
 												})}
+											</span>
+											<span className="text-xs font-medium text-slate-400">
+												XLM
+											</span>
+										</div>
+										<span className="text-xs text-slate-400">
+											{formatDate(tx.createdAt)}
+										</div>
+									</div>
+
+									{/* Mobile card */}
+									<div className="lg:hidden space-y-2">
+										<div className="flex items-center justify-between">
+											<div className="flex items-center">
+												<span
+													className="font-mono text-xs text-indigo-600"
+													title={tx.hash}
+												>
+													{truncate(tx.hash, 8, 6)}
+												</span>
+												<CopyButton
+													text={tx.hash}
+													label={`Copy transaction hash ${tx.hash}`}
+												/>
 											</div>
 											<div className="col-span-1">
 												<StatusPill status={tx.status} />
