@@ -141,6 +141,13 @@ export function RecoveryTimelineEvent({
 	isFirst = false,
 	onClick,
 	className,
+	focused = false,
+	tabIndex = -1,
+	onKeyDown,
+	eventRef,
+	testId,
+	onFocus,
+	onBlur,
 }: RecoveryTimelineEventProps) {
 	const statusColor = statusColors[event.status] || statusColors.pending;
 	const dotColor = dotColors[event.status] || dotColors.pending;
@@ -156,14 +163,22 @@ export function RecoveryTimelineEvent({
 			<div className="flex flex-col items-center">
 				{/* Dot */}
 				<button
+					ref={eventRef}
 					onClick={onClick}
+					onKeyDown={onKeyDown}
+					onFocus={onFocus}
+					onBlur={onBlur}
+					tabIndex={tabIndex}
 					className={cn(
-						"p-2 rounded-full transition-all",
+						"p-2 rounded-full transition-all focus-visible:outline-none",
 						statusColor,
 						onClick && "cursor-pointer hover:scale-110",
+						focused &&
+							"ring-2 ring-blue-500 ring-offset-2 dark:ring-blue-400 dark:ring-offset-zinc-900",
 					)}
 					aria-pressed={false}
 					title={event.title}
+					data-testid={testId}
 				>
 					{icon}
 				</button>
