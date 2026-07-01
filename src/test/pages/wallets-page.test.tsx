@@ -1,14 +1,12 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Import the page
 import WalletsPage from "@/app/demo/dashboard/wallets/page";
 import { NetworkProvider } from "@/context/NetworkContext";
 
-// Synthetic 56-char G-address that passes validateStellarAddress and is
-// absent from src/mock-data/wallets.ts so duplicate-detection never fires.
 const VALID_ADDRESS =
-	"GNEWTEST222222222222222222222222222222222222222222222222";
+	"GBZXN7PIRZGNMHGA7MUUUF4GWPY5AYPV6LY4UV2GL6VJGIQRXFDNMADI";
 
 // ---------------------------------------------------------------------------
 // Helper to render with providers
@@ -167,31 +165,38 @@ describe("WalletsPage (/demo/dashboard/wallets)", () => {
 			expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 		});
 
-		it("shows a success toast after adding a wallet", async () => {
+		it("shows a success toast and closes the modal after adding a wallet", async () => {
 			const user = await loadTable();
 
 			// Open modal
 			await user.click(screen.getByRole("button", { name: /add wallet/i }));
-			const dialog = screen.getByRole("dialog");
 
-			// Fill in form — scope queries to the dialog to avoid ambiguity
+			// Fill in form
 			await user.type(
-				within(dialog).getByLabelText(/stellar address/i),
+				screen.getByLabelText(/stellar address/i),
 				VALID_ADDRESS,
 			);
 
-			// Submit — the modal submit button is the only "Add Wallet" button inside the dialog
+			// Submit form — triggers 800ms fake API delay inside AddWalletModal
 			await user.click(
-				within(dialog).getByRole("button", { name: /add wallet/i }),
+				screen.getByRole("button", { name: /^add wallet$/i }),
 			);
 
-			// Advance past the simulated 800ms API delay
+			// Advance past the simulated API delay
 			vi.advanceTimersByTime(1000);
 
-			// onAdd fires, which closes the modal and shows the toast
+			// Wait for success step in the modal
 			await waitFor(() =>
-				expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+				expect(
+					screen.getByText(/wallet added successfully/i),
+				).toBeInTheDocument(),
 			);
+
+			// Click Done to close modal, which triggers handleWalletAdded
+			await user.click(screen.getByRole("button", { name: /done/i }));
+
+			// Modal should be closed
+			expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
 			// Toast should appear
 			await waitFor(() =>
@@ -200,35 +205,36 @@ describe("WalletsPage (/demo/dashboard/wallets)", () => {
 			expect(screen.getByText(/added successfully/i)).toBeInTheDocument();
 		});
 
-		it("adds the new wallet to the table after submission", async () => {
+		it("adds the new wallet to the list after submission", async () => {
 			const user = await loadTable();
 
-			const initialCount = Number(
-				screen.getByText(/\d+ wallets?/).textContent?.match(/\d+/)?.[0] ?? "0",
-			);
+			const initialCount = screen
+				.getAllByText(/\d+ wallets?/)
+				.at(0)
+				?.textContent?.match(/\d+/)?.[0];
 
-			// Open modal and submit
 			await user.click(screen.getByRole("button", { name: /add wallet/i }));
-			const dialog = screen.getByRole("dialog");
 			await user.type(
-				within(dialog).getByLabelText(/stellar address/i),
+				screen.getByLabelText(/stellar address/i),
 				VALID_ADDRESS,
 			);
 			await user.click(
-				within(dialog).getByRole("button", { name: /add wallet/i }),
+				screen.getByRole("button", { name: /^add wallet$/i }),
 			);
 			vi.advanceTimersByTime(1000);
-
 			await waitFor(() =>
-				expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+				expect(
+					screen.getByText(/wallet added successfully/i),
+				).toBeInTheDocument(),
 			);
+			await user.click(screen.getByRole("button", { name: /done/i }));
 
 			await waitFor(() => {
-				const newCount = Number(
-					screen.getByText(/\d+ wallets?/).textContent?.match(/\d+/)?.[0] ??
-						"0",
-				);
-				expect(newCount).toBeGreaterThan(initialCount);
+				const newCount = screen
+					.getAllByText(/\d+ wallets?/)
+					.at(0)
+					?.textContent?.match(/\d+/)?.[0];
+				expect(Number(newCount)).toBeGreaterThan(Number(initialCount));
 			});
 		});
 	});

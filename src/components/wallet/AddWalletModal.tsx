@@ -19,10 +19,6 @@ export interface AddWalletModalProps {
 	 * completes the form and the simulated persistence resolves.
 	 */
 	onAdd: (wallet: Wallet) => void;
-	/**
-	 * Already-registered addresses used for duplicate detection.
-	 * The form blocks submission when the entered address matches any entry here.
-	 */
 	existingAddresses?: string[];
 }
 
@@ -372,8 +368,7 @@ export function AddWalletModal({
 										</span>
 									) : (
 										<p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-											A friendly name to identify this wallet. Max 30
-											characters.
+											A friendly name to identify this wallet. Max 30 characters.
 										</p>
 									)}
 								</div>

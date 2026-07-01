@@ -6,7 +6,7 @@ export type ToastVariant = "success" | "error" | "info";
 export interface ToastProps {
 	/** Whether the toast is visible. When `false` nothing is rendered. */
 	open: boolean;
-	/** The body text shown below the title. */
+	/** The message body displayed inside the toast. */
 	message: string;
 	/**
 	 * Visual style variant.
