@@ -208,7 +208,7 @@ export function RecoveryFAQ({
 		<section
 			aria-labelledby="recovery-faq-heading"
 			className={cn(
-				"rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950",
+				"rounded-xl border border-zinc-200 bg-white p-4 sm:p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950",
 				className,
 			)}
 		>
