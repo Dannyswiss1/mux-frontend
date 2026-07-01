@@ -215,6 +215,10 @@ interface SpendingLimitsCardProps {
 	empty?: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
 export function SpendingLimitsCard({
 	loading = false,
 	fetchError = null,
@@ -222,6 +226,7 @@ export function SpendingLimitsCard({
 }: SpendingLimitsCardProps) {
 	const [dailyLimit, setDailyLimit] = useState("5000");
 	const [transactionLimit, setTransactionLimit] = useState("1000");
+	const [todayUsage, setTodayUsage] = useState(0);
 	const [dailyError, setDailyError] = useState<string | null>(null);
 	const [txError, setTxError] = useState<string | null>(null);
 	const [saveInProgress, setSaveInProgress] = useState(false);
@@ -255,6 +260,9 @@ export function SpendingLimitsCard({
 		} catch {
 			// ignore localStorage parse errors
 		}
+
+		loadLimits();
+
 		return () => {
 			if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
 		};
@@ -306,13 +314,42 @@ export function SpendingLimitsCard({
 		setSaveInProgress(true);
 		setError(null);
 		try {
+			// Persist to localStorage regardless of API success
 			window.localStorage.setItem(
 				STORAGE_KEY,
-				JSON.stringify({
-					dailyLimit: safeSaveValue(dailyLimit),
-					transactionLimit: safeSaveValue(transactionLimit),
-				}),
+				JSON.stringify({ dailyLimit: dailyVal, transactionLimit: txVal }),
 			);
+
+			// Attempt to sync to the backend
+			try {
+				const res = await fetch("/api/spending-limits", {
+					method: "PUT",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({
+						dailyLimit: dailyVal,
+						transactionLimit: txVal,
+					}),
+				});
+				if (!res.ok) {
+					const body = await res.json().catch(() => ({}));
+					throw new Error((body as { error?: string }).error ?? res.statusText);
+				}
+			} catch (apiErr) {
+				// API errors are non-fatal: localStorage already has the data.
+				// Log but don't surface to the user as an error.
+				if (process.env.NODE_ENV === "development") {
+					// biome-ignore lint/suspicious/noConsoleLog: allowed in dev
+					console.log(
+						"[SpendingLimitsCard] API sync failed (non-fatal):",
+						apiErr,
+					);
+				}
+			}
+
+			trackSpendingLimitsEvent("spending_limits_saved", {
+				dailyLimit: dailyVal,
+				transactionLimit: txVal,
+			});
 			showToast("success", "Spending limits saved.");
 		} catch {
 			setError("Failed to save. Please try again.");

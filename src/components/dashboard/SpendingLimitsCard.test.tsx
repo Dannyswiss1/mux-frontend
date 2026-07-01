@@ -12,6 +12,46 @@ import {
 // Core card rendering
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Global fetch mock: return the default API response
+// ---------------------------------------------------------------------------
+
+const DEFAULT_API_RESPONSE = {
+	limits: { dailyLimit: 5000, transactionLimit: 1000 },
+	todayUsage: 750,
+};
+
+function mockFetchSuccess(body = DEFAULT_API_RESPONSE) {
+	vi.stubGlobal(
+		"fetch",
+		vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve(body),
+		}),
+	);
+}
+
+function mockFetchFailure() {
+	vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+}
+
+beforeEach(() => {
+	mockFetchSuccess();
+	vi.stubGlobal("localStorage", {
+		getItem: vi.fn().mockReturnValue(null),
+		setItem: vi.fn(),
+	});
+});
+
+afterEach(() => {
+	vi.unstubAllGlobals();
+	vi.restoreAllMocks();
+});
+
+// ---------------------------------------------------------------------------
+// Basic rendering
+// ---------------------------------------------------------------------------
+
 describe("SpendingLimitsCard", () => {
 	it("renders the card title and description", async () => {
 		render(<SpendingLimitsCard />);
@@ -322,11 +362,46 @@ describe("SpendingLimitsCard keyboard navigation", () => {
 			getItem: vi.fn().mockReturnValue(null),
 			setItem: vi.fn(),
 		});
+
+		await user.clear(dailyInput);
+		await user.type(dailyInput, "8000");
+
+		await waitFor(() => {
+			expect(consoleSpy).toHaveBeenCalledWith(
+				"[Analytics] spending_limits_daily_changed",
+				expect.any(Object),
+			);
+		});
+
+		consoleSpy.mockRestore();
 	});
 
-	afterEach(() => {
-		vi.unstubAllGlobals();
+	it("fires spending_limits_transaction_changed when tx input changes", async () => {
+		const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+		const user = userEvent.setup();
+
+		render(<SpendingLimitsCard />);
+		const txInput = await screen.findByRole("spinbutton", {
+			name: /per-transaction limit/i,
+		});
+
+		await user.clear(txInput);
+		await user.type(txInput, "2000");
+
+		await waitFor(() => {
+			expect(consoleSpy).toHaveBeenCalledWith(
+				"[Analytics] spending_limits_transaction_changed",
+				expect.any(Object),
+			);
+		});
+
+		consoleSpy.mockRestore();
 	});
+});
+
+// ---------------------------------------------------------------------------
+// Keyboard navigation
+// ---------------------------------------------------------------------------
 
 	it("pressing Enter in daily limit input triggers save", async () => {
 		const user = userEvent.setup();
@@ -367,22 +442,16 @@ describe("SpendingLimitsCard keyboard navigation", () => {
 // Toast feedback
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Toast feedback
+// ---------------------------------------------------------------------------
+
 describe("SpendingLimitsCard toast feedback", () => {
-	beforeEach(() => {
-		vi.stubGlobal("localStorage", {
-			getItem: vi.fn().mockReturnValue(null),
-			setItem: vi.fn(),
-		});
-	});
-
-	afterEach(() => {
-		vi.unstubAllGlobals();
-	});
-
 	it("shows success toast after saving valid settings", async () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
 
+		await screen.findByRole("button", { name: /save settings/i });
 		await user.click(screen.getByRole("button", { name: /save settings/i }));
 
 		expect(screen.getByRole("status")).toBeInTheDocument();
@@ -398,6 +467,7 @@ describe("SpendingLimitsCard toast feedback", () => {
 		const user = userEvent.setup();
 		render(<SpendingLimitsCard />);
 
+		await screen.findByRole("button", { name: /save settings/i });
 		await user.click(screen.getByRole("button", { name: /save settings/i }));
 
 		expect(screen.getByRole("status")).toBeInTheDocument();
@@ -406,8 +476,52 @@ describe("SpendingLimitsCard toast feedback", () => {
 		expect(screen.getAllByText(/failed to save/i).length).toBeGreaterThan(0);
 	});
 
-	it("toast is not visible before saving", () => {
+	it("toast is not visible before saving", async () => {
 		render(<SpendingLimitsCard />);
+		await screen.findByRole("button", { name: /save settings/i });
 		expect(screen.queryByRole("status")).not.toBeInTheDocument();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// API fallback to localStorage
+// ---------------------------------------------------------------------------
+
+describe("SpendingLimitsCard — API unavailable fallback", () => {
+	it("loads limits from localStorage when API is unavailable", async () => {
+		mockFetchFailure();
+		vi.mocked(localStorage.getItem).mockReturnValue(
+			JSON.stringify({ dailyLimit: 2000, transactionLimit: 300 }),
+		);
+
+		render(<SpendingLimitsCard />);
+
+		await waitFor(() => {
+			const dailyInput = screen.getByRole("spinbutton", {
+				name: /daily spending limit/i,
+			});
+			expect(dailyInput).toHaveValue(2000);
+		});
+		await waitFor(() => {
+			const txInput = screen.getByRole("spinbutton", {
+				name: /per-transaction limit/i,
+			});
+			expect(txInput).toHaveValue(300);
+		});
+	});
+
+	it("uses default values when API unavailable and no localStorage", async () => {
+		mockFetchFailure();
+		vi.mocked(localStorage.getItem).mockReturnValue(null);
+
+		render(<SpendingLimitsCard />);
+
+		// Defaults are 5000 / 1000 from useState initialization
+		await waitFor(() => {
+			const dailyInput = screen.getByRole("spinbutton", {
+				name: /daily spending limit/i,
+			});
+			expect(dailyInput).toHaveValue(5000);
+		});
 	});
 });
