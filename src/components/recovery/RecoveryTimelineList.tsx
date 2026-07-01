@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { RecoveryTimelineListProps } from "@/types/recovery";
 import { RecoveryTimelineEvent } from "./RecoveryTimelineEvent";
@@ -32,6 +33,55 @@ export function RecoveryTimelineList({
 	onEventClick,
 	emptyMessage = "No recovery events to display",
 }: RecoveryTimelineListProps) {
+	const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+	const eventRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+	const handleKeyDown = useCallback(
+		(event: React.KeyboardEvent, index: number) => {
+			switch (event.key) {
+				case "ArrowDown":
+					event.preventDefault();
+					if (index < events.length - 1) {
+						setFocusedIndex(index + 1);
+						eventRefs.current[index + 1]?.focus();
+					}
+					break;
+				case "ArrowUp":
+					event.preventDefault();
+					if (index > 0) {
+						setFocusedIndex(index - 1);
+						eventRefs.current[index - 1]?.focus();
+					}
+					break;
+				case "Enter":
+				case " ":
+					event.preventDefault();
+					onEventClick?.(events[index]);
+					break;
+				case "Home":
+					event.preventDefault();
+					setFocusedIndex(0);
+					eventRefs.current[0]?.focus();
+					break;
+				case "End":
+					event.preventDefault();
+					const lastIndex = events.length - 1;
+					setFocusedIndex(lastIndex);
+					eventRefs.current[lastIndex]?.focus();
+					break;
+			}
+		},
+		[events, onEventClick],
+	);
+
+	const handleFocus = useCallback((index: number) => {
+		setFocusedIndex(index);
+	}, []);
+
+	const handleBlur = useCallback(() => {
+		setFocusedIndex(-1);
+	}, []);
+
 	// Handle empty state
 	if (!events || events.length === 0) {
 		return (
@@ -121,6 +171,13 @@ export function RecoveryTimelineList({
 						isFirst={index === 0}
 						isLast={index === events.length - 1}
 						onClick={() => onEventClick?.(event)}
+						focused={focusedIndex === index}
+						tabIndex={focusedIndex === index ? 0 : -1}
+						onKeyDown={(e) => handleKeyDown(e, index)}
+						eventRef={(el) => { eventRefs.current[index] = el; }}
+						onFocus={() => handleFocus(index)}
+						onBlur={handleBlur}
+						testId={`recovery-event-${index}`}
 						className={cn(
 							"transition-all",
 							onEventClick &&
