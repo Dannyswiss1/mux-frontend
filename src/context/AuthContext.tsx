@@ -44,10 +44,10 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 /** sessionStorage key for the user record (client-side rehydration). */
-const SESSION_STORAGE_KEY = "mux_auth_user";
+export const SESSION_STORAGE_KEY = "mux_auth_user";
 
 /** Cookie name read by the Next.js middleware for server-side route protection. */
-const SESSION_COOKIE_NAME = "mux_auth_session";
+export const SESSION_COOKIE_NAME = "mux_auth_session";
 
 /** Default session lifetime: 8 hours. */
 const DEFAULT_TTL_MS = 8 * 60 * 60 * 1000;

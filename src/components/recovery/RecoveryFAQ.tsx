@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { trackRecoveryEvent } from "@/services/recoveryAnalyticsTracking";
 import { RecoveryDocsLink } from "./RecoveryDocsLink";
 
 /**
@@ -160,7 +161,11 @@ export function RecoveryFAQ({
 	const faqRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
 	const toggle = (id: string) => {
-		setOpenId((prev) => (prev === id ? null : id));
+		setOpenId((prev) => {
+			const isOpen = prev === id;
+			trackRecoveryEvent(isOpen ? "recovery_faq_collapsed" : "recovery_faq_expanded", { id });
+			return isOpen ? null : id;
+		});
 	};
 
 	const handleKeyDown = useCallback(

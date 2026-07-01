@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { type UseRecoveryReturn } from "@/hooks/useRecovery";
+import { trackRecoveryEvent } from "@/services/recoveryAnalyticsTracking";
 
 /**
  * Props for the {@link InitiateRecoveryCTA} component.
@@ -87,7 +88,10 @@ export function InitiateRecoveryCTA({ recovery }: InitiateRecoveryCTAProps) {
 						variant="ghost"
 						size="sm"
 						className="mt-3 text-green-700 hover:text-green-900 dark:text-green-400 dark:hover:text-green-200"
-						onClick={resetRecovery}
+						onClick={() => {
+							trackRecoveryEvent("recovery_reset");
+							resetRecovery();
+						}}
 					>
 						Dismiss
 					</Button>
@@ -119,7 +123,10 @@ export function InitiateRecoveryCTA({ recovery }: InitiateRecoveryCTAProps) {
 				</div>
 				<div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
 					<Button
-						onClick={confirmRecovery}
+						onClick={() => {
+							trackRecoveryEvent("recovery_confirmed");
+							confirmRecovery();
+						}}
 						size="sm"
 						className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 w-full sm:w-auto"
 					>
