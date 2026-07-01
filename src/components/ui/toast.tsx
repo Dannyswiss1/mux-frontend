@@ -1,6 +1,6 @@
 import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
 
-export type ToastVariant = "success" | "error" | "info";
+import { useEffect, useState, useCallback } from "react";
 
 /** Props for the `Toast` notification component. */
 export interface ToastProps {

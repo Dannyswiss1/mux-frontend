@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { InitiateRecoveryCTA } from "@/components/recovery/InitiateRecoveryCTA";
+import { RecoveryEmptyState } from "@/components/recovery/RecoveryEmptyState";
+import { RecoveryErrorState } from "@/components/recovery/RecoveryErrorState";
 import { RecoveryExplanation } from "@/components/recovery/RecoveryExplanation";
 import { RecoveryFAQ } from "@/components/recovery/RecoveryFAQ";
 import { RecoveryLoadingState } from "@/components/recovery/RecoveryLoadingState";
@@ -12,6 +14,16 @@ import { trackRecoveryEvent } from "@/services/recoveryAnalyticsTracking";
 
 export default function RecoveryPage() {
 	const recovery = useRecovery();
+
+	// Track whether recovery has ever successfully exited the loading phase so
+	// we can distinguish a bootstrap error (loading → error) from an action
+	// error (idle → … → error).
+	const [hasReachedIdle, setHasReachedIdle] = useState(false);
+
+	useEffect(() => {
+		if (recovery.state === "idle") setHasReachedIdle(true);
+	}, [recovery.state]);
+
 	const [toast, setToast] = useState<{
 		open: boolean;
 		message: string;
@@ -49,6 +61,10 @@ export default function RecoveryPage() {
 		return () => clearTimeout(timer);
 	}, [toast.open]);
 
+	// A bootstrap error happens when the page never successfully loaded — i.e.
+	// the initial fetch failed before we ever reached "idle".
+	const isBootstrapError = recovery.state === "error" && !hasReachedIdle;
+
 	return (
 		<main className="min-h-screen bg-zinc-50 dark:bg-black p-4 sm:p-6 md:p-12">
 			<div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
@@ -76,10 +92,21 @@ export default function RecoveryPage() {
 				{/* Loading skeleton while initial status is fetched */}
 				{recovery.state === "loading" ? (
 					<RecoveryLoadingState />
+				) : isBootstrapError ? (
+					/* Full-page error state when the initial load failed */
+					<RecoveryErrorState
+						description={recovery.errorMessage ?? undefined}
+						onRetry={recovery.resetRecovery}
+					/>
 				) : (
 					<>
-						{/* Initiate Recovery CTA (handles idle, confirming, pending, success, and error states) */}
+						{/* Initiate Recovery CTA (handles idle, confirming, pending, success, and action errors) */}
 						<InitiateRecoveryCTA recovery={recovery} />
+
+						{/* Empty state shown while no recovery has been initiated */}
+						{recovery.state === "idle" && (
+							<RecoveryEmptyState onInitiate={recovery.initiateRecovery} />
+						)}
 
 						{/* Recovery Explanation Component */}
 						<RecoveryExplanation />
@@ -90,7 +117,11 @@ export default function RecoveryPage() {
 				)}
 			</div>
 
-			<Toast open={toast.open} message={toast.message} variant={toast.variant} />
+			<Toast
+				open={toast.open}
+				message={toast.message}
+				variant={toast.variant}
+			/>
 		</main>
 	);
 }
