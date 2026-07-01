@@ -571,4 +571,116 @@ describe("LoginPage (issue #47 + #325–#328)", () => {
 			).not.toBeInTheDocument();
 		});
 	});
+
+	// -------------------------------------------------------------------------
+	// #330 — Keyboard navigation
+	// -------------------------------------------------------------------------
+
+	describe("#330 — keyboard navigation", () => {
+		it("email input has focus:ring classes for keyboard accessibility", async () => {
+			renderLoginPage();
+			const email = await screen.findByLabelText(/email address/i);
+			expect(email.className).toContain("focus:ring-2");
+		});
+
+		it("password input has focus:ring classes for keyboard accessibility", async () => {
+			renderLoginPage();
+			const pwd = await screen.findByLabelText(/password/i);
+			expect(pwd.className).toContain("focus:ring-2");
+		});
+
+		it("submit button has focus:ring classes for keyboard accessibility", async () => {
+			renderLoginPage();
+			const btn = await screen.findByTestId("login-submit");
+			expect(btn.className).toContain("focus:ring-2");
+		});
+
+		it("email input has correct type and autocomplete for browser assistance", async () => {
+			renderLoginPage();
+			const email = await screen.findByLabelText(/email address/i);
+			expect(email).toHaveAttribute("type", "email");
+			expect(email).toHaveAttribute("autocomplete", "email");
+		});
+
+		it("password input has correct type and autocomplete", async () => {
+			renderLoginPage();
+			const pwd = await screen.findByLabelText(/password/i);
+			expect(pwd).toHaveAttribute("type", "password");
+			expect(pwd).toHaveAttribute("autocomplete", "current-password");
+		});
+
+		it("form has aria-label for screen reader identification", async () => {
+			renderLoginPage();
+			const form = await screen.findByRole("form", { name: /sign in/i });
+			expect(form).toBeInTheDocument();
+		});
+
+		it("email input has aria-invalid when there is a validation error", async () => {
+			renderLoginPage();
+			await screen.findByTestId("login-form");
+			fireEvent.click(screen.getByTestId("login-submit"));
+			const email = await screen.findByLabelText(/email address/i);
+			expect(email).toHaveAttribute("aria-invalid", "true");
+		});
+
+		it("email error has aria-describedby association with input", async () => {
+			renderLoginPage();
+			await screen.findByTestId("login-form");
+			fireEvent.click(screen.getByTestId("login-submit"));
+			const email = await screen.findByLabelText(/email address/i);
+			const describedBy = email.getAttribute("aria-describedby");
+			expect(describedBy).toBeTruthy();
+			const errorEl = document.getElementById(describedBy as string);
+			expect(errorEl).toBeInTheDocument();
+		});
+	});
+
+	// -------------------------------------------------------------------------
+	// #331 — Copy-to-clipboard UX on error card
+	// -------------------------------------------------------------------------
+
+	describe("#331 — copy-to-clipboard on error card", () => {
+		beforeEach(() => {
+			Object.assign(navigator, {
+				clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+			});
+		});
+
+		it("renders a copy button on the error card", async () => {
+			mockFetchError(401, "Invalid credentials");
+			renderLoginPage();
+			await screen.findByTestId("login-form");
+			fireEvent.change(screen.getByLabelText(/email address/i), {
+				target: { value: "user@example.com" },
+			});
+			fireEvent.change(screen.getByLabelText(/password/i), {
+				target: { value: "password123" },
+			});
+			fireEvent.click(screen.getByTestId("login-submit"));
+			await screen.findByTestId("login-error");
+			expect(
+				screen.getByRole("button", { name: /copy error/i }),
+			).toBeInTheDocument();
+		});
+
+		it("copies the error message to clipboard when copy button is clicked", async () => {
+			mockFetchError(401, "Invalid credentials");
+			renderLoginPage();
+			await screen.findByTestId("login-form");
+			fireEvent.change(screen.getByLabelText(/email address/i), {
+				target: { value: "user@example.com" },
+			});
+			fireEvent.change(screen.getByLabelText(/password/i), {
+				target: { value: "password123" },
+			});
+			fireEvent.click(screen.getByTestId("login-submit"));
+			await screen.findByTestId("login-error");
+			fireEvent.click(screen.getByRole("button", { name: /copy error/i }));
+			await waitFor(() => {
+				expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+					"Invalid credentials",
+				);
+			});
+		});
+	});
 });
