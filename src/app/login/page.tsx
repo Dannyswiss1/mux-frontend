@@ -5,6 +5,7 @@ import { type FormEvent, Suspense, useEffect, useState } from "react";
 import { AuthLoadingSkeleton } from "@/components/layouts/AuthLoadingSkeleton";
 import { useAuth } from "@/context/AuthContext";
 import { ToastContainer, useToast } from "@/components/ui/Toast";
+import { trackAuthEvent } from "@/services/authAnalyticsTracking";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -111,11 +112,11 @@ function LoginErrorCard({
 	return (
 		<div
 			role="alert"
-			className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+			className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
 			data-testid="login-error"
 		>
 			<svg
-				className="mt-0.5 h-4 w-4 shrink-0 text-red-500"
+				className="mt-0.5 h-4 w-4 shrink-0 text-red-500 dark:text-red-400"
 				fill="none"
 				viewBox="0 0 24 24"
 				strokeWidth={2}
@@ -150,7 +151,7 @@ function LoginErrorCard({
 				type="button"
 				onClick={onDismiss}
 				aria-label="Dismiss error"
-				className="text-red-400 hover:text-red-600"
+				className="text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-300"
 			>
 				<svg
 					className="h-4 w-4"
@@ -182,11 +183,11 @@ function LoginErrorCard({
 function LoginWelcomeHint() {
 	return (
 		<div
-			className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700"
+			className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300"
 			data-testid="login-empty-state"
 		>
 			<p className="font-medium">Welcome to Mux Protocol</p>
-			<p className="mt-0.5 text-blue-600">
+			<p className="mt-0.5 text-blue-600 dark:text-blue-400">
 				Enter your credentials to access your developer console.
 			</p>
 		</div>
@@ -223,6 +224,11 @@ function LoginPageContent() {
 		}
 	}, [isAuthenticated, isLoading, callbackUrl, router]);
 
+	// Track login page view on mount
+	useEffect(() => {
+		trackAuthEvent("login_page_view", { callbackUrl });
+	}, [callbackUrl]);
+
 	function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
 		const { name, value } = e.target;
 		setFields((prev) => ({ ...prev, [name]: value }));
@@ -239,13 +245,23 @@ function LoginPageContent() {
 		const errors = validate(fields);
 		if (Object.keys(errors).length > 0) {
 			setFieldErrors(errors);
+			trackAuthEvent("login_validation_failed", { 
+				errors: Object.keys(errors),
+			});
 			return;
 		}
 
 		setIsSubmitting(true);
+		trackAuthEvent("login_attempt", { email: fields.email });
+
 		try {
 			const user = await authenticateUser(fields.email, fields.password);
 			signIn(user);
+			trackAuthEvent("login_success", { 
+				email: user.email, 
+				role: user.role,
+				callbackUrl,
+			});
 			addToast({ type: "success", message: "Signed in successfully!", description: `Welcome back, ${user.name}.` });
 			router.replace(callbackUrl);
 		} catch (err) {
@@ -254,6 +270,10 @@ function LoginPageContent() {
 					? err.message
 					: "Sign in failed. Please check your credentials and try again.";
 			setSubmitError(message);
+			trackAuthEvent("login_failed", { 
+				email: fields.email,
+				error: message,
+			});
 			addToast({ type: "error", message: "Sign in failed", description: message });
 		} finally {
 			setIsSubmitting(false);
@@ -267,12 +287,12 @@ function LoginPageContent() {
 	}
 
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+		<div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-6 dark:bg-zinc-950 sm:px-6 lg:px-8">
 			<ToastContainer toasts={toasts} onDismiss={dismissToast} position="top-right" />
 			<div className="w-full max-w-md">
 				{/* Logo / brand */}
-				<div className="mb-8 text-center">
-					<div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600">
+				<div className="mb-6 text-center sm:mb-8">
+					<div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/20 sm:mb-4">
 						<svg
 							className="h-6 w-6 text-white"
 							fill="none"
@@ -288,17 +308,17 @@ function LoginPageContent() {
 							/>
 						</svg>
 					</div>
-					<h1 className="text-2xl font-bold tracking-tight text-gray-900">
+					<h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
 						Mux Protocol
 					</h1>
-					<p className="mt-1 text-sm text-gray-500">
+					<p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
 						Sign in to your developer console
 					</p>
 				</div>
 
 				{/* Login card */}
-				<div className="rounded-2xl border border-gray-200 bg-white px-8 py-10 shadow-sm">
-					<h2 className="mb-6 text-lg font-semibold text-gray-900">Sign in</h2>
+				<div className="rounded-2xl border border-gray-200 bg-white px-6 py-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:px-8 sm:py-10">
+					<h2 className="mb-6 text-lg font-semibold text-gray-900 dark:text-white">Sign in</h2>
 
 					{/* #326: Empty/welcome state — shown before the user types anything */}
 					{isPristine && !submitError && <LoginWelcomeHint />}
@@ -321,7 +341,7 @@ function LoginPageContent() {
 						<div className="mb-4">
 							<label
 								htmlFor="email"
-								className="mb-1.5 block text-sm font-medium text-gray-700"
+								className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-zinc-300"
 							>
 								Email address
 							</label>
@@ -336,12 +356,13 @@ function LoginPageContent() {
 								aria-invalid={!!fieldErrors.email}
 								aria-describedby={fieldErrors.email ? "email-error" : undefined}
 								className={[
-									"block w-full rounded-lg border px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400",
+									"block w-full rounded-lg border px-3 py-3 text-sm text-gray-900 placeholder-gray-400",
 									"focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0",
 									"disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500",
+									"dark:text-white dark:placeholder-zinc-500 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500",
 									fieldErrors.email
-										? "border-red-400 bg-red-50 focus:ring-red-400"
-										: "border-gray-300 bg-white",
+										? "border-red-400 bg-red-50 focus:ring-red-400 dark:border-red-700 dark:bg-red-950/20 dark:focus:ring-red-600"
+										: "border-gray-300 bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:focus:ring-blue-600",
 								].join(" ")}
 								placeholder="you@example.com"
 							/>
@@ -349,7 +370,7 @@ function LoginPageContent() {
 								<p
 									id="email-error"
 									role="alert"
-									className="mt-1.5 text-xs text-red-600"
+									className="mt-1.5 text-xs text-red-600 dark:text-red-400"
 									data-testid="email-error"
 								>
 									{fieldErrors.email}
@@ -361,7 +382,7 @@ function LoginPageContent() {
 						<div className="mb-6">
 							<label
 								htmlFor="password"
-								className="mb-1.5 block text-sm font-medium text-gray-700"
+								className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-zinc-300"
 							>
 								Password
 							</label>
@@ -378,12 +399,13 @@ function LoginPageContent() {
 									fieldErrors.password ? "password-error" : undefined
 								}
 								className={[
-									"block w-full rounded-lg border px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400",
+									"block w-full rounded-lg border px-3 py-3 text-sm text-gray-900 placeholder-gray-400",
 									"focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0",
 									"disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500",
+									"dark:text-white dark:placeholder-zinc-500 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500",
 									fieldErrors.password
-										? "border-red-400 bg-red-50 focus:ring-red-400"
-										: "border-gray-300 bg-white",
+										? "border-red-400 bg-red-50 focus:ring-red-400 dark:border-red-700 dark:bg-red-950/20 dark:focus:ring-red-600"
+										: "border-gray-300 bg-white dark:border-zinc-700 dark:bg-zinc-800 dark:focus:ring-blue-600",
 								].join(" ")}
 								placeholder="••••••••"
 							/>
@@ -391,7 +413,7 @@ function LoginPageContent() {
 								<p
 									id="password-error"
 									role="alert"
-									className="mt-1.5 text-xs text-red-600"
+									className="mt-1.5 text-xs text-red-600 dark:text-red-400"
 									data-testid="password-error"
 								>
 									{fieldErrors.password}
@@ -404,11 +426,11 @@ function LoginPageContent() {
 							type="submit"
 							disabled={isSubmitting}
 							className={[
-								"flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5",
+								"flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 min-h-[44px]",
 								"text-sm font-semibold text-white transition-colors",
-								"focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+								"focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900",
 								"disabled:cursor-not-allowed disabled:opacity-60",
-								isSubmitting ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700",
+								isSubmitting ? "bg-blue-400 dark:bg-blue-600" : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 dark:bg-blue-700 dark:hover:bg-blue-600",
 							].join(" ")}
 							data-testid="login-submit"
 						>
@@ -444,7 +466,7 @@ function LoginPageContent() {
 				</div>
 
 				{/* Footer note */}
-				<p className="mt-6 text-center text-xs text-gray-400">
+				<p className="mt-6 text-center text-xs text-gray-400 dark:text-zinc-600">
 					Mux Protocol developer console — internal use only
 				</p>
 			</div>

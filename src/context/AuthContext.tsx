@@ -7,6 +7,10 @@ import {
 	useEffect,
 	useState,
 } from "react";
+import { 
+	trackAuthEvent, 
+	trackSessionExpired 
+} from "@/services/authAnalyticsTracking";
 
 export interface AuthUser {
 	/** The user's display name */
@@ -100,10 +104,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 					// Re-sync cookie in case it was cleared (e.g. browser restart)
 					const remainingMs = record.expiresAt - Date.now();
 					setSessionCookie(remainingMs);
+					trackAuthEvent("session_rehydrated", { 
+						email: record.user.email,
+						remainingMs,
+					});
 				} else {
 					// Session expired — clean up stale data
 					sessionStorage.removeItem(SESSION_STORAGE_KEY);
 					clearSessionCookie();
+					trackSessionExpired();
 				}
 			}
 		} catch {
@@ -126,10 +135,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	}, []);
 
 	const signOut = useCallback(() => {
+		const currentUser = user;
 		sessionStorage.removeItem(SESSION_STORAGE_KEY);
 		clearSessionCookie();
 		setUser(null);
-	}, []);
+		trackAuthEvent("logout", { 
+			email: currentUser?.email,
+		});
+	}, [user]);
 
 	return (
 		<AuthContext.Provider
