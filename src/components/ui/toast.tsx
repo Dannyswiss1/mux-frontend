@@ -1,34 +1,47 @@
-import { cn } from "@/lib/utils";
+import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
 
-export type ToastVariant = "success" | "error" | "info";
+import { useEffect, useState, useCallback } from "react";
 
+/** Props for the `Toast` notification component. */
 export interface ToastProps {
+	/** Whether the toast is visible. When `false` nothing is rendered. */
 	open: boolean;
 	/** The message body displayed inside the toast. */
 	message: string;
-	/** Visual variant controlling icon and colour scheme. Defaults to "success". */
+	/**
+	 * Visual style variant.
+	 * Defaults to `"success"` when omitted.
+	 */
 	variant?: ToastVariant;
-	/** Overrides the default variant title. */
+	/**
+	 * Overrides the default title for the variant (`"Success"` / `"Error"` / `"Info"`).
+	 */
 	title?: string;
-	/** When provided, renders a close button that calls this function. */
+	/**
+	 * When provided, renders a dismiss (✕) button that calls this handler.
+	 * Omit to render a non-dismissible toast.
+	 */
 	onClose?: () => void;
 }
 
-const VARIANT_STYLES: Record<
+const VARIANT_CONFIG: Record<
 	ToastVariant,
-	{ container: string; title: string }
+	{ icon: React.ElementType; iconClass: string; defaultTitle: string }
 > = {
 	success: {
-		container: "bg-zinc-950/95",
-		title: "Success",
+		icon: CheckCircle2,
+		iconClass: "text-green-400",
+		defaultTitle: "Success",
 	},
 	error: {
-		container: "bg-red-950/95",
-		title: "Error",
+		icon: AlertCircle,
+		iconClass: "text-red-400",
+		defaultTitle: "Error",
 	},
 	info: {
-		container: "bg-blue-950/95",
-		title: "Info",
+		icon: Info,
+		iconClass: "text-blue-400",
+		defaultTitle: "Info",
 	},
 };
 
@@ -43,31 +56,29 @@ export function Toast({
 		return null;
 	}
 
-	const { container, title: defaultTitle } = VARIANT_STYLES[variant];
+	const { icon: Icon, iconClass, defaultTitle } = VARIANT_CONFIG[variant];
 	const displayTitle = title ?? defaultTitle;
 
 	return (
-		<div
-			className={cn(
-				"fixed right-4 bottom-4 z-50 max-w-xs rounded-2xl p-4 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur-md",
-				container,
-			)}
-		>
-			<div role="status" aria-live="polite" className="space-y-1">
-				<div className="flex items-center justify-between gap-2">
+		<div className="fixed right-4 bottom-4 z-50 max-w-xs rounded-2xl bg-zinc-950/95 p-4 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
+			<div role="status" aria-live="polite" className="flex items-start gap-3">
+				<Icon
+					className={`mt-0.5 h-4 w-4 shrink-0 ${iconClass}`}
+					aria-hidden="true"
+				/>
+				<div className="flex-1 space-y-1">
 					<p className="text-sm font-semibold">{displayTitle}</p>
-					{onClose && (
-						<button
-							type="button"
-							onClick={onClose}
-							aria-label="Close notification"
-							className="shrink-0 text-white/60 transition-colors hover:text-white"
-						>
-							<span aria-hidden="true">×</span>
-						</button>
-					)}
+					<p className="text-sm text-zinc-200">{message}</p>
 				</div>
-				<p className="text-sm text-zinc-200">{message}</p>
+				{onClose && (
+					<button
+						onClick={onClose}
+						className="-mr-1 -mt-1 ml-auto rounded p-1 text-zinc-400 transition-colors hover:text-zinc-200"
+						aria-label="Dismiss notification"
+					>
+						<X className="h-3.5 w-3.5" aria-hidden="true" />
+					</button>
+				)}
 			</div>
 		</div>
 	);
