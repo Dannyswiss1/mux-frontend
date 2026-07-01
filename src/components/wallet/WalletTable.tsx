@@ -211,12 +211,29 @@ export function WalletTable({
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{wallets.map((wallet) => (
-										<TableRow key={wallet.id}>
+									{wallets.map((wallet, index) => (
+										<TableRow
+											key={wallet.id}
+											data-testid={`wallet-row-${index}`}
+											tabIndex={0}
+											ref={(el: HTMLTableRowElement | null) => {
+												rowRefs.current[index] = el;
+											}}
+											onKeyDown={(e) => handleKeyDown(e, index)}
+											onFocus={() => handleRowFocus(index)}
+											onBlur={handleRowBlur}
+											aria-label={`${truncateAddress(wallet.address)}, ${wallet.network}, ${wallet.status}`}
+											className={
+												focusedIndex === index
+													? "ring-2 ring-blue-500 dark:ring-blue-400 focus:outline-none"
+													: "focus:outline-none"
+											}
+										>
 											<TableCell>
 												<Link
 													href={`/demo/dashboard/wallets/${wallet.id}`}
 													className="block"
+													tabIndex={-1}
 												>
 													<WalletAddressCell
 														address={wallet.address}
@@ -230,6 +247,7 @@ export function WalletTable({
 												<Link
 													href={`/demo/dashboard/wallets/${wallet.id}`}
 													className="block"
+													tabIndex={-1}
 												>
 													<NetworkBadge network={wallet.network} />
 												</Link>
@@ -238,6 +256,7 @@ export function WalletTable({
 												<Link
 													href={`/demo/dashboard/wallets/${wallet.id}`}
 													className="block"
+													tabIndex={-1}
 												>
 													<StatusIndicator status={wallet.status} />
 												</Link>
@@ -246,6 +265,7 @@ export function WalletTable({
 												<Link
 													href={`/demo/dashboard/wallets/${wallet.id}`}
 													className="block text-zinc-700 dark:text-zinc-300"
+													tabIndex={-1}
 												>
 													{wallet.balance ?? "—"}
 												</Link>
@@ -254,6 +274,7 @@ export function WalletTable({
 												<Link
 													href={`/demo/dashboard/wallets/${wallet.id}`}
 													className="block"
+													tabIndex={-1}
 												>
 													{formatDate(wallet.createdAt)}
 												</Link>
@@ -262,6 +283,7 @@ export function WalletTable({
 												<Link
 													href={`/demo/dashboard/wallets/${wallet.id}`}
 													className="block"
+													tabIndex={-1}
 												>
 													{formatDate(wallet.lastActivity)}
 												</Link>
