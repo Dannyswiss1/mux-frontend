@@ -21,6 +21,12 @@ interface FieldErrors {
 	password?: string;
 }
 
+/** Tracks which fields the user has interacted with (blurred or submitted). */
+interface TouchedFields {
+	email: boolean;
+	password: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // API call — #325: wire to backend via POST /api/auth/login
 // ---------------------------------------------------------------------------
@@ -52,8 +58,9 @@ async function authenticateUser(
 		);
 	}
 
-	const user = (data as { user?: { name: string; email: string; role: string } })
-		.user;
+	const user = (
+		data as { user?: { name: string; email: string; role: string } }
+	).user;
 	if (!user) {
 		throw new Error("Unexpected response from authentication server.");
 	}
@@ -209,8 +216,15 @@ function LoginPageContent() {
 		password: "",
 	});
 	const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+	/** Tracks which fields have been touched (blurred or form submitted). */
+	const [touched, setTouched] = useState<TouchedFields>({
+		email: false,
+		password: false,
+	});
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	/** Controls whether the password field shows plain text. */
+	const [showPassword, setShowPassword] = useState(false);
 
 	const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
 
@@ -231,16 +245,34 @@ function LoginPageContent() {
 
 	function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
 		const { name, value } = e.target;
-		setFields((prev) => ({ ...prev, [name]: value }));
-		if (fieldErrors[name as keyof FieldErrors]) {
-			setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
-		}
+		const key = name as keyof LoginFormState;
+		const updated = { ...fields, [key]: value };
+		setFields(updated);
 		setSubmitError(null);
+
+		// Re-validate immediately if the field has already been touched, so a
+		// previously-errored field turns green as soon as the user fixes it.
+		if (touched[key]) {
+			const errors = validate(updated);
+			setFieldErrors((prev) => ({ ...prev, [key]: errors[key] }));
+		}
+	}
+
+	/** Validate the field when focus leaves it (blur validation). */
+	function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+		const { name } = e.target;
+		const key = name as keyof LoginFormState;
+		setTouched((prev) => ({ ...prev, [key]: true }));
+		const errors = validate(fields);
+		setFieldErrors((prev) => ({ ...prev, [key]: errors[key] }));
 	}
 
 	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setSubmitError(null);
+
+		// Mark all fields as touched on submit so errors appear immediately.
+		setTouched({ email: true, password: true });
 
 		const errors = validate(fields);
 		if (Object.keys(errors).length > 0) {
@@ -294,7 +326,7 @@ function LoginPageContent() {
 				<div className="mb-6 text-center sm:mb-8">
 					<div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/20 sm:mb-4">
 						<svg
-							className="h-6 w-6 text-white"
+							className="h-5 w-5 text-white sm:h-6 sm:w-6"
 							fill="none"
 							viewBox="0 0 24 24"
 							strokeWidth={2}
@@ -338,7 +370,7 @@ function LoginPageContent() {
 						data-testid="login-form"
 					>
 						{/* Email field */}
-						<div className="mb-4">
+						<div className="mb-3 sm:mb-4">
 							<label
 								htmlFor="email"
 								className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-zinc-300"
@@ -352,6 +384,7 @@ function LoginPageContent() {
 								autoComplete="email"
 								value={fields.email}
 								onChange={handleChange}
+								onBlur={handleBlur}
 								disabled={isSubmitting}
 								aria-invalid={!!fieldErrors.email}
 								aria-describedby={fieldErrors.email ? "email-error" : undefined}
@@ -379,7 +412,7 @@ function LoginPageContent() {
 						</div>
 
 						{/* Password field */}
-						<div className="mb-6">
+						<div className="mb-4 sm:mb-6">
 							<label
 								htmlFor="password"
 								className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-zinc-300"
@@ -437,7 +470,7 @@ function LoginPageContent() {
 							{isSubmitting ? (
 								<>
 									<svg
-										className="h-4 w-4 animate-spin"
+										className="h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4"
 										fill="none"
 										viewBox="0 0 24 24"
 										aria-hidden="true"
