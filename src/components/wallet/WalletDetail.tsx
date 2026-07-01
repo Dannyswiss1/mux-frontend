@@ -88,9 +88,7 @@ export function WalletDetail({ id }: WalletDetailProps) {
 						: `${error}. Check your connection and try again.`
 				}
 				retry={
-					isNotFound
-						? undefined
-						: { label: "Try Again", onRetry: refresh }
+					isNotFound ? undefined : { label: "Try Again", onRetry: refresh }
 				}
 			/>
 		);
@@ -155,7 +153,7 @@ export function WalletDetail({ id }: WalletDetailProps) {
 						Balance refresh failed: {error}
 					</p>
 				)}
-			</section>
+			</div>
 
 			{/* Wallet metadata */}
 			{wallet ? (
@@ -265,7 +263,7 @@ export function WalletDetail({ id }: WalletDetailProps) {
 							</div>
 						)}
 					</dl>
-				</section>
+				</div>
 			) : (
 				<div className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
 					<Skeleton className="mb-4 h-4 w-24" />
