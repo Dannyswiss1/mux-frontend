@@ -3,7 +3,7 @@
 import { AlertCircle, Check, Copy, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ExplorerLink } from "@/components/ui/ExplorerLink";
 import { TestnetHint } from "@/components/ui/TestnetHint";
@@ -90,6 +90,28 @@ export function WalletTable({
 	const router = useRouter();
 	const [focusedIndex, setFocusedIndex] = useState<number>(-1);
 	const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
+	const [toastOpen, setToastOpen] = useState(false);
+	const [toastMessage, setToastMessage] = useState("");
+	const [toastType, setToastType] = useState<"success" | "error">("success");
+	const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const showToast = useCallback((message: string, type: "success" | "error") => {
+		if (toastTimer.current) clearTimeout(toastTimer.current);
+		setToastMessage(message);
+		setToastType(type);
+		setToastOpen(true);
+		toastTimer.current = setTimeout(() => setToastOpen(false), 3000);
+	}, []);
+
+	const handleCopySuccess = useCallback((address: string) => {
+		showToast(`Copied ${address.slice(0, 6)}…${address.slice(-4)}`, "success");
+		onCopySuccess?.(address);
+	}, [showToast, onCopySuccess]);
+
+	const handleCopyError = useCallback((error: string) => {
+		showToast(error, "error");
+		onCopyError?.(error);
+	}, [showToast, onCopyError]);
 
 	const hasTestnetWallets = useMemo(
 		() => wallets.some((wallet) => wallet.network === "testnet"),
@@ -213,8 +235,8 @@ export function WalletTable({
 													<WalletAddressCell
 														address={wallet.address}
 														network={wallet.network}
-														onCopySuccess={onCopySuccess}
-														onCopyError={onCopyError}
+														onCopySuccess={handleCopySuccess}
+														onCopyError={handleCopyError}
 													/>
 												</Link>
 											</TableCell>
@@ -283,8 +305,8 @@ export function WalletTable({
 												<WalletAddressCell
 													address={wallet.address}
 													network={wallet.network}
-													onCopySuccess={onCopySuccess}
-													onCopyError={onCopyError}
+													onCopySuccess={handleCopySuccess}
+													onCopyError={handleCopyError}
 												/>
 											</div>
 											<div className="flex flex-shrink-0 gap-2">
