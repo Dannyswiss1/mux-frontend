@@ -58,15 +58,23 @@ function WalletAddressCell({
 				title={error ? error : copied ? "Copied!" : "Copy address"}
 				disabled={error !== null}
 				className="transition-all hover:scale-110"
-				aria-label={copied ? "Address copied to clipboard" : "Copy address to clipboard"}
+				aria-label={
+					copied ? "Address copied to clipboard" : "Copy address to clipboard"
+				}
 				data-testid="copy-address-button"
 			>
 				{error ? (
 					<AlertCircle className="h-4 w-4 text-red-500" aria-hidden="true" />
 				) : copied ? (
-					<Check className="h-4 w-4 text-green-500 animate-in fade-in zoom-in duration-200" aria-hidden="true" />
+					<Check
+						className="h-4 w-4 text-green-500 animate-in fade-in zoom-in duration-200"
+						aria-hidden="true"
+					/>
 				) : (
-					<Copy className="h-4 w-4 transition-colors hover:text-blue-600 dark:hover:text-blue-400" aria-hidden="true" />
+					<Copy
+						className="h-4 w-4 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+						aria-hidden="true"
+					/>
 				)}
 			</Button>
 			<ExplorerLink

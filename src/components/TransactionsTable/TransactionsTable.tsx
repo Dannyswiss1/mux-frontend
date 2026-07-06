@@ -469,10 +469,17 @@ export default function TransactionsTable({
 											>
 												{truncate(tx.hash, 8, 6)}
 											</span>
+											{tx.memo && (
+												<span className="text-xs text-slate-400 truncate block">
+													{tx.memo}
+												</span>
+											)}
 										</div>
-										<div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-											<StatusPill status={tx.status} />
-											<NetworkBadge network={tx.network} />
+										<div
+											className="col-span-2 font-mono text-xs text-slate-600 truncate"
+											title={tx.from}
+										>
+											{truncate(tx.from)}
 										</div>
 									</div>
 
@@ -509,28 +516,26 @@ export default function TransactionsTable({
 												XLM
 											</span>
 										</div>
-										<span className="text-xs text-slate-400">
+										<div className="col-span-1 text-xs text-slate-500">
 											{formatDate(tx.createdAt)}
 										</span>
 									</div>
 
-									{/* Mobile card */}
-									<div className="lg:hidden space-y-2">
-										<div className="flex items-center justify-between">
-											<div className="flex items-center">
+									{/* Mobile card — polished layout */}
+									<div className="lg:hidden">
+										{/* Top row: hash + badges */}
+										<div className="flex items-start justify-between gap-2 mb-3">
+											<div className="flex-1 min-w-0">
 												<span
-													className="font-mono text-xs text-indigo-600"
+													className="font-mono text-xs font-medium text-indigo-600 break-all leading-snug"
 													title={tx.hash}
 												>
 													{truncate(tx.hash, 8, 6)}
 												</span>
-												<CopyButton
-													text={tx.hash}
-													label={`Copy transaction hash ${tx.hash}`}
-												/>
 											</div>
 											<div className="col-span-1">
 												<StatusPill status={tx.status} />
+												<NetworkBadge network={tx.network} />
 											</div>
 											<div className="col-span-1">
 												<NetworkBadge network={tx.network} />

@@ -80,6 +80,67 @@ export function Toast({
 					</button>
 				)}
 			</div>
+			<button
+				type="button"
+				onClick={() => onDismiss(toast.id)}
+				className="ml-2 shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+				aria-label={`Dismiss ${toast.type} notification`}
+			>
+				<span aria-hidden="true">&times;</span>
+			</button>
 		</div>
 	);
+}
+
+// ─── Toast Container ─────────────────────────────────────────────────────────
+
+/**
+ * Container that renders a stack of toast notifications.
+ * Positions the toasts based on the `position` prop.
+ * Returns null when there are no toasts to display (empty state).
+ */
+export function ToastContainer({
+	toasts,
+	onDismiss,
+	position = "top-right",
+}: ToastContainerProps) {
+	if (toasts.length === 0) return null;
+
+	return (
+		<div
+			className={`fixed z-50 flex flex-col gap-2 w-full max-w-sm ${positionClasses[position]}`}
+			aria-label="Notifications"
+		>
+			{toasts.map((toast) => (
+				<ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
+			))}
+		</div>
+	);
+}
+
+// ─── useToast Hook ───────────────────────────────────────────────────────────
+
+/**
+ * Custom hook for managing toast notifications state.
+ *
+ * @returns An object containing:
+ *  - toasts: The current array of active ToastMessage items.
+ *  - addToast: Function to add a new toast (returns the generated id).
+ *  - dismissToast: Function to remove a toast by id.
+ */
+export function useToast() {
+	const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+	const addToast = useCallback((partial: Omit<ToastMessage, "id">): string => {
+		const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+		const toast: ToastMessage = { ...partial, id };
+		setToasts((prev) => [...prev, toast]);
+		return id;
+	}, []);
+
+	const dismissToast = useCallback((id: string) => {
+		setToasts((prev) => prev.filter((t) => t.id !== id));
+	}, []);
+
+	return { toasts, addToast, dismissToast };
 }
