@@ -7,6 +7,7 @@ import {
 	AnalyticsHeader,
 	type DateRange,
 } from "@/components/analytics/AnalyticsHeader";
+import { AnalyticsHelpPanel } from "@/components/analytics/AnalyticsHelpPanel";
 import { AnalyticsLoadingSkeleton } from "@/components/analytics/AnalyticsLoadingSkeleton";
 import { MetricsCards } from "@/components/analytics/MetricsCards";
 import { TopAssetsTable } from "@/components/analytics/TopAssetsTable";
@@ -62,11 +63,13 @@ export default function AnalyticsPage() {
 			<>
 				<ErrorState
 					title="Failed to load analytics"
-					description={error ?? "An unexpected error occurred. Please try again."}
+					description={
+						error ?? "An unexpected error occurred. Please try again."
+					}
 					retry={{ onRetry: handleRefresh }}
 				/>
-				<ToastContainer 
-					toasts={toasts} 
+				<ToastContainer
+					toasts={toasts}
 					onDismiss={dismissToast}
 					position="top-right"
 				/>
@@ -84,6 +87,11 @@ export default function AnalyticsPage() {
 						onClick: refetch,
 					}}
 				/>
+				<ToastContainer
+					toasts={toasts}
+					onDismiss={dismissToast}
+					position="top-right"
+				/>
 			</div>
 		);
 	}
@@ -91,8 +99,11 @@ export default function AnalyticsPage() {
 	return (
 		<>
 			<div className="space-y-6">
-				<AnalyticsHeader 
-					range={range} 
+				{/* #454 – inline help panel documents analytics data sources */}
+				<AnalyticsHelpPanel />
+
+				<AnalyticsHeader
+					range={range}
 					onRangeChange={handleRangeChange}
 					onRefresh={handleRefresh}
 				/>
@@ -115,9 +126,9 @@ export default function AnalyticsPage() {
 
 				<TopAssetsTable assets={data.topAssets} />
 			</div>
-			
-			<ToastContainer 
-				toasts={toasts} 
+
+			<ToastContainer
+				toasts={toasts}
 				onDismiss={dismissToast}
 				position="top-right"
 			/>
