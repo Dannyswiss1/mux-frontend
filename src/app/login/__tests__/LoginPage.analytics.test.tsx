@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "@testing-library/jest-dom";
 import React from "react";
 import * as authAnalytics from "@/services/authAnalyticsTracking";
@@ -33,10 +33,11 @@ vi.mock("@/services/authAnalyticsTracking");
  * success, and failure.
  */
 describe("LoginPage - Analytics Tracking", () => {
-	const trackAuthEventSpy = vi.spyOn(authAnalytics, "trackAuthEvent");
+	let trackAuthEventSpy: ReturnType<typeof vi.spyOn>;
 
 	beforeEach(() => {
-		trackAuthEventSpy.mockClear();
+		trackAuthEventSpy = vi.spyOn(authAnalytics, "trackAuthEvent");
+		trackAuthEventSpy.mockImplementation(() => undefined);
 		global.fetch = vi.fn();
 	});
 
