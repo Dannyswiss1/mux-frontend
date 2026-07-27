@@ -77,4 +77,13 @@ describe("APIKeyModal", () => {
 		await user.click(doneButton);
 		expect(onClose).toHaveBeenCalled();
 	});
+
+	it("closes when Escape is pressed", () => {
+		const onClose = vi.fn();
+		render(<APIKeyModal isOpen={true} onClose={onClose} />);
+
+		fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+
+		expect(onClose).toHaveBeenCalled();
+	});
 });

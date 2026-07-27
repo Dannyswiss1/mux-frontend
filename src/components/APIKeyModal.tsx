@@ -71,6 +71,30 @@ export default function APIKeyModal({
 		onClose();
 	};
 
+	const generateApiKey = async () => {
+		const trimmedName = keyName.trim();
+		if (!trimmedName) {
+			setError("Key name is required.");
+			return;
+		}
+
+		setError(null);
+		setIsSubmitting(true);
+		await Promise.resolve();
+
+		const newKey = createApiKey();
+		setApiKey(newKey);
+		setIsSubmitting(false);
+		onKeyCreated?.({ name: trimmedName, value: newKey, key: newKey });
+	};
+
+	const copyToClipboard = async () => {
+		if (!apiKey) return;
+		await navigator.clipboard.writeText(apiKey);
+		setCopied(true);
+		window.setTimeout(() => setCopied(false), 2000);
+	};
+
 	if (!isOpen) return null;
 
 	return (
@@ -116,7 +140,33 @@ export default function APIKeyModal({
 								</div>
 							</div>
 						</div>
-					)}
+						<div>
+							<h2
+								id={titleId}
+								className="text-xl font-semibold text-zinc-900 dark:text-zinc-50"
+							>
+								{isRevealStep ? "Save your API key" : "Create API Key"}
+							</h2>
+							<p
+								id={descriptionId}
+								className="text-sm text-zinc-500 dark:text-zinc-400"
+							>
+								{isRevealStep
+									? "This key will only be shown once."
+									: "Name the key before generating a secret."}
+							</p>
+						</div>
+					</div>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon-sm"
+						onClick={handleClose}
+						aria-label="Close dialog"
+					>
+						<X className="h-4 w-4" aria-hidden="true" />
+					</Button>
+				</div>
 
 					{createdKey ? (
 						<div className="space-y-4">
@@ -144,6 +194,11 @@ export default function APIKeyModal({
 										data-testid="copy-generated-key"
 									/>
 								</div>
+								{copied && (
+									<p role="status" className="mt-2 text-sm text-green-700 dark:text-green-400">
+										API key copied to clipboard
+									</p>
+								)}
 							</div>
 							<label className="flex items-start gap-2 text-sm text-zinc-600 dark:text-zinc-400">
 								<input
