@@ -7,10 +7,18 @@ import {
 	Info,
 	X,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
+import { cn } from "@/lib/utils";
 
 /** Visual variant for the standalone `Toast` component. */
 export type ToastVariant = "success" | "error" | "info";
+
+export type ToastVariant = "success" | "error" | "info" | "warning";
 
 /** Props for the `Toast` notification component. */
 export interface ToastProps {
@@ -52,6 +60,11 @@ const VARIANT_CONFIG: Record<
 		icon: Info,
 		iconClass: "text-blue-400",
 		defaultTitle: "Info",
+	},
+	warning: {
+		icon: AlertTriangle,
+		iconClass: "text-yellow-400",
+		defaultTitle: "Warning",
 	},
 };
 
@@ -166,12 +179,10 @@ export function ToastItem({ toast, onDismiss }: ToastItemProps) {
 			role="alert"
 			className="flex items-start gap-3 rounded-xl bg-white p-4 text-zinc-900 shadow-lg ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-50 dark:ring-zinc-800"
 		>
-			<Icon
-				className={`mt-0.5 h-4 w-4 shrink-0 ${iconClass}`}
-				aria-hidden="true"
-			/>
+			<span className="mt-0.5 shrink-0">{ICONS[type]}</span>
 			<div className="flex-1 space-y-1">
-				<p className="text-sm font-semibold">{message}</p>
+				<p className="text-sm font-semibold">{LABELS[type]}</p>
+				<p className="text-sm text-zinc-600 dark:text-zinc-300">{message}</p>
 				{description && (
 					<p className="text-sm text-zinc-500 dark:text-zinc-400">
 						{description}
@@ -204,8 +215,8 @@ export function ToastContainer({
 
 	return (
 		<div
-			className={`fixed z-50 flex flex-col gap-2 w-full max-w-sm ${positionClasses[position]}`}
 			aria-label="Notifications"
+			className={`fixed z-50 flex flex-col gap-2 w-full max-w-sm ${POSITION_CLASSES[position]}`}
 		>
 			{toasts.map((toast) => (
 				<ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
@@ -214,12 +225,12 @@ export function ToastContainer({
 	);
 }
 
-// ─── useToast Hook ───────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// useToast — hook for managing the toast queue
+// ---------------------------------------------------------------------------
 
 /**
- * Custom hook for managing toast notifications state.
- *
- * @returns An object containing:
+ * Returns a stateful toast queue and helpers:
  *  - toasts: The current array of active ToastMessage items.
  *  - addToast: Function to add a new toast (returns the generated id).
  *  - dismissToast: Function to remove a toast by id.
