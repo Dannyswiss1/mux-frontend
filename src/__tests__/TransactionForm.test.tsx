@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { TransactionForm } from "@/components/transactions/TransactionForm";
 
 describe("TransactionForm", () => {
-	const mockOnSubmit = jest.fn();
+	const mockOnSubmit = vi.fn();
 
 	beforeEach(() => {
 		mockOnSubmit.mockClear();
