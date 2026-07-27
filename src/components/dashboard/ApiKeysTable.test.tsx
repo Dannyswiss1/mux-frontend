@@ -52,4 +52,50 @@ describe("ApiKeysTable", () => {
 		);
 		expect(screen.getByText("Revoked")).toBeInTheDocument();
 	});
+
+	it("shows loading state while API keys are fetched", () => {
+		mockUseApiKeys.mockReturnValue({
+			data: null,
+			loading: true,
+			error: null,
+			refetch: vi.fn(),
+		});
+
+		render(<ApiKeysTable />);
+
+		expect(screen.getByLabelText("Loading API keys")).toBeInTheDocument();
+	});
+
+	it("shows an actionable empty state when no API keys exist", () => {
+		mockUseApiKeys.mockReturnValue({
+			data: [],
+			loading: false,
+			error: null,
+			refetch: vi.fn(),
+		});
+
+		render(<ApiKeysTable />);
+
+		expect(screen.getByText("No API keys yet")).toBeInTheDocument();
+		fireEvent.click(screen.getAllByText("Create new key")[1]);
+		expect(screen.getByText("Create API Key")).toBeInTheDocument();
+	});
+
+	it("shows an error state and retries loading", () => {
+		const refetch = vi.fn();
+		mockUseApiKeys.mockReturnValue({
+			data: null,
+			loading: false,
+			error: new Error("network"),
+			refetch,
+		});
+
+		render(<ApiKeysTable />);
+
+		expect(
+			screen.getByText("Failed to load API keys. Please try again."),
+		).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+		expect(refetch).toHaveBeenCalledTimes(1);
+	});
 });

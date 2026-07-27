@@ -15,6 +15,33 @@ export async function fetchApiKeys(): Promise<ApiKey[]> {
 	return json.data;
 }
 
+export type ActivityItem = {
+	id: string;
+	type: "wallet_created" | "transaction" | "api_key_created" | "limit_reached";
+	description: string;
+	timestamp: string;
+	status: "success" | "pending" | "error";
+	network?: "mainnet" | "testnet";
+};
+
+export async function fetchOverview(): Promise<OverviewData | null> {
+	const res = await fetch("/api/overview", { cache: "no-store" });
+	if (!res.ok) {
+		throw new Error(`Failed to fetch overview (${res.status})`);
+	}
+	const json = (await res.json()) as { data: OverviewData | null };
+	return json.data;
+}
+
+export async function fetchRecentActivity(): Promise<ActivityItem[]> {
+	const res = await fetch("/api/activity", { cache: "no-store" });
+	if (!res.ok) {
+		throw new Error(`Failed to fetch recent activity (${res.status})`);
+	}
+	const json = (await res.json()) as { data?: ActivityItem[] } | ActivityItem[];
+	return Array.isArray(json) ? json : (json.data ?? []);
+}
+
 export async function revokeKey(id: string): Promise<ApiKey | null> {
 	const res = await fetch("/api/api-keys", {
 		method: "PATCH",

@@ -218,11 +218,10 @@ export function ApiKeysTable({ initialKeys }: ApiKeysTableProps) {
 							</p>
 						</div>
 					</div>
-					<Button
-						size="sm"
-						className="rounded-full px-4"
-						onClick={() => setIsModalOpen(true)}
-						data-testid="create-key-btn"
+				) : error && !initialKeys ? (
+					<div
+						role="alert"
+						className="m-6 rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-900/20"
 					>
 						Create new key
 					</Button>
