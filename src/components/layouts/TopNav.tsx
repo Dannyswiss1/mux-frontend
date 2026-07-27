@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	ArrowRightStartOnRectangleIcon,
 	Bars3Icon,
 	BellIcon,
 	ChevronDownIcon,
@@ -28,6 +29,7 @@ const networkBadgeClass = {
 
 export function TopNav({ onMenuClick }: TopNavProps) {
 	const [searchOpen, setSearchOpen] = useState(false);
+	const [menuOpen, setMenuOpen] = useState(false);
 	const pathname = usePathname();
 	const { network, setNetwork } = useNetwork();
 	const [optimisticNetwork, setOptimisticNetwork] =
@@ -36,6 +38,8 @@ export function TopNav({ onMenuClick }: TopNavProps) {
 	const switchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const { user, isLoading } = useAuth();
 	const { isDark, toggle: toggleDark } = useDarkMode();
+	const router = useRouter();
+	const menuRef = useRef<HTMLDivElement>(null);
 
 	// Get current page title from pathname
 	const pageTitle = (() => {
@@ -85,6 +89,36 @@ export function TopNav({ onMenuClick }: TopNavProps) {
 			setIsSwitchingNetwork(false);
 		}, 300);
 	}
+
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		function handleClickOutside(event: MouseEvent) {
+			if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+				setMenuOpen(false);
+			}
+		}
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, []);
+
+	// Close dropdown on Escape key
+	useEffect(() => {
+		function handleKeyDown(event: KeyboardEvent) {
+			if (event.key === "Escape") {
+				setMenuOpen(false);
+			}
+		}
+		document.addEventListener("keydown", handleKeyDown);
+		return () => document.removeEventListener("keydown", handleKeyDown);
+	}, []);
+
+	function handleLogout() {
+		setMenuOpen(false);
+		signOut();
+		router.replace("/login");
+	}
+
+	const displayName = user?.name ?? "Developer";
 
 	return (
 		<header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white/95 px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8 backdrop-blur supports-backdrop-filter:bg-white/60 dark:border-zinc-800 dark:bg-zinc-900/95 dark:supports-backdrop-filter:bg-zinc-900/60">
@@ -232,7 +266,7 @@ export function TopNav({ onMenuClick }: TopNavProps) {
 					</button>
 
 					{/* User dropdown */}
-					<div className="relative">
+					<div className="relative" ref={menuRef}>
 						<button
 							type="button"
 							aria-label="Open user menu"
@@ -271,10 +305,47 @@ export function TopNav({ onMenuClick }: TopNavProps) {
 								/>
 							)}
 							<ChevronDownIcon
-								className="hidden h-5 w-5 text-gray-400 lg:block"
+								className={`hidden h-5 w-5 text-gray-400 lg:block transition-transform duration-150 ${menuOpen ? "rotate-180" : ""}`}
 								aria-hidden="true"
 							/>
 						</button>
+
+						{/* Dropdown menu */}
+						{menuOpen && (
+							<div
+								id="user-menu"
+								role="menu"
+								aria-labelledby="user-menu-button"
+								data-testid="user-menu"
+								className="absolute right-0 mt-2 w-48 origin-top-right rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5 focus:outline-none z-50"
+							>
+								{/* User info */}
+								<div className="border-b border-gray-100 px-4 py-2">
+									<p className="text-xs text-gray-500">Signed in as</p>
+									<p
+										className="truncate text-sm font-medium text-gray-900"
+										data-testid="user-menu-email"
+									>
+										{user?.email ?? ""}
+									</p>
+								</div>
+
+								{/* Logout action */}
+								<button
+									type="button"
+									role="menuitem"
+									onClick={handleLogout}
+									data-testid="logout-button"
+									className="flex w-full items-center gap-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600 focus:outline-none focus:bg-gray-50"
+								>
+									<ArrowRightStartOnRectangleIcon
+										className="h-4 w-4 text-gray-400"
+										aria-hidden="true"
+									/>
+									Sign out
+								</button>
+							</div>
+						)}
 					</div>
 				</div>
 			</div>
