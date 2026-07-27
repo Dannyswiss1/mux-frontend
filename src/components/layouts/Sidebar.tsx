@@ -32,10 +32,10 @@ const navigation = [
 function isNavItemActive(pathname: string, itemHref: string): boolean {
 	// Exact match
 	if (pathname === itemHref) return true;
-	// For the Dashboard root item, only match exact
+	// For the Dashboard root item, only match exact to avoid matching all sub-routes
 	if (itemHref === "/dashboard") return false;
 	// For other items, match if the pathname starts with the item's href
-	// (handles nested routes like /demo/dashboard/settings/profile)
+	// (handles nested routes like /dashboard/settings/profile)
 	return pathname.startsWith(itemHref + "/") || pathname.startsWith(itemHref);
 }
 
@@ -88,6 +88,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 								<Link
 									key={item.name}
 									href={item.href}
+									data-testid={`sidebar-nav-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
+									aria-current={isActive ? "page" : undefined}
 									className={clsx(
 										"group flex items-center rounded-lg px-4 py-3 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
 										isActive
