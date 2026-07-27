@@ -30,6 +30,8 @@ export type ToastVariant = "success" | "error" | "info" | "warning";
 
 export type ToastVariant = "success" | "error" | "info" | "warning";
 
+export type ToastVariant = "success" | "error" | "info" | "warning";
+
 /** Props for the `Toast` notification component. */
 export interface ToastProps {
 	/** Whether the toast is visible. When `false` nothing is rendered. */
