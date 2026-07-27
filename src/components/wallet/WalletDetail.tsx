@@ -26,6 +26,7 @@ import { StatusIndicator } from "@/components/wallet/StatusIndicator";
 import { WalletActivityFeed } from "@/components/wallet/WalletActivityFeed";
 import { WalletNotFound } from "@/components/wallet/WalletNotFound";
 import { useAnalyticsTracking } from "@/hooks/useAnalyticsTracking";
+import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useWalletBalance } from "@/hooks/useWalletBalance";
 import { trackWalletEvent } from "@/services/walletAnalyticsTracking";
@@ -216,6 +217,21 @@ export function WalletDetail({ id }: WalletDetailProps) {
 								Updated {formatDate(lastUpdated)}
 							</span>
 						)}
+						{balance && (
+							<button
+								type="button"
+								onClick={toggleBalanceVisibility}
+								aria-label={isBalanceVisible ? "Hide balance" : "Show balance"}
+								aria-pressed={isBalanceVisible}
+								className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+							>
+								{isBalanceVisible ? (
+									<EyeOff className="h-4 w-4" aria-hidden="true" />
+								) : (
+									<Eye className="h-4 w-4" aria-hidden="true" />
+								)}
+							</button>
+						)}
 						<button
 							type="button"
 							onClick={handleCopyLink}
@@ -266,7 +282,11 @@ export function WalletDetail({ id }: WalletDetailProps) {
 						aria-live="polite"
 						aria-atomic="true"
 					>
-						{balance ?? "—"}
+						{!balance
+							? "—"
+							: isBalanceVisible
+								? balance
+								: "•••••• XLM"}
 					</p>
 				)}
 
